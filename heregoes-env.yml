@@ -1,0 +1,24 @@
+name: heregoes-env
+channels:
+  - conda-forge
+  - defaults
+  - intel
+  - numba
+dependencies:
+  - astropy
+  - black
+  - cartopy
+  - gdal=3
+  - intel::icc_rt
+  - isort
+  - netcdf4
+  - numba::numba>=0.54
+  - numpy>=1.20
+  - conda-forge::opencv
+  - pip
+  - pyproj>=3.2
+  - pyspectral
+  - pytest
+  - python=3.8
+  - scipy
+  - threadpoolctl
