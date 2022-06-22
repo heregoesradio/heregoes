@@ -26,7 +26,7 @@ from heregoes import heregoes_njit, util
 
 
 @heregoes_njit
-def rad_bv(radiance, input_min, input_max, asinh_a, output_min, output_max):
+def rad2bv(radiance, input_min, input_max, asinh_a, output_min, output_max):
     # rescale radiance between 0 and 1 based on the estimated minimum and maximum possible values of radiance for a given channel
     rad = util.linear_norm(
         radiance, old_min=input_min, old_max=input_max, new_min=0.0, new_max=1.0

@@ -36,7 +36,7 @@ safe_time_format = "%Y-%m-%dT%H%M%SZ"
 class NCMeta:
     """
     Stores general fields for GOES-R netCDF metadata.
-    
+
     Arguments:
         -  `nc`: String or Path object pointing to a netCDF file for either:
             - GOES-R ABI L1b Radiance, or

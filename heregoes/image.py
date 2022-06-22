@@ -29,13 +29,7 @@ import numpy as np
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from scipy import ndimage
 
-from heregoes import (
-    abi,
-    logger,
-    meta,
-    suvi,
-    util,
-)
+from heregoes import abi, logger, meta, suvi, util
 
 
 class Image:
@@ -322,7 +316,7 @@ class SUVIImage(Image):
     @property
     def bv(self):
         if self._bv is None:
-            self._bv = suvi.rad_bv(
+            self._bv = suvi.rad2bv(
                 self.rad,
                 *self.meta.instrument_meta.coefficients.input_range,
                 self.meta.instrument_meta.coefficients.asinh_a,

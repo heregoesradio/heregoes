@@ -22,7 +22,6 @@ import uuid
 
 import numpy as np
 from osgeo import gdal
-from pyproj import Transformer, crs
 
 from heregoes import GDAL_PARALLEL, NUM_CPUS
 
@@ -261,17 +260,3 @@ class ABIProjection:
         drv.CreateCopy(str(cog_filepath), resampled, options=final_gdal_options)
 
         return cog_filepath
-
-
-def egm96_to_grs80(lat, lon, height_above_geoid):
-    # converts heights above the EGM96 geoid to heights above the GRS80/WGS84 ellipsoid
-
-    wgs84_egm96 = crs.CompoundCRS(
-        name="WGS 84 + EGM96 height", components=["EPSG:4326", "EPSG:5773"]
-    )
-    grs80 = crs.CRS("+proj=lonlat +ellps=GRS80 +units=m +vunits=m +no_defs")
-    # needs egm96_15.gtx installed in $ENV/share/proj/egm96_15.gtx. equivalent to the pipeline string:
-    # "+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=vgridshift +grids=egm96_15.gtx +multiplier=1 +step +proj=unitconvert +xy_in=rad +xy_out=deg"
-    transformer = Transformer.from_crs(crs_from=wgs84_egm96, crs_to=grs80)
-
-    return transformer.transform(lat, lon, height_above_geoid)[2]

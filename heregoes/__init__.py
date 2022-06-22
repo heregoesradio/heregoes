@@ -27,7 +27,6 @@ import cv2
 import numba
 from threadpoolctl import threadpool_limits
 
-
 SCRIPT_PATH = Path(__file__).parent.resolve()
 
 

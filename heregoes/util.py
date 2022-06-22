@@ -209,16 +209,18 @@ def nearest_2d(y_arr, x_arr, target_y, target_x):
     if y_arr.shape != x_arr.shape:
         return
 
-    if (np.isnan(y_arr) | np.isnan(x_arr)).any() == True:
+    # For our use case, if y_arr contains nan then x_arr probably does too. By assuming this we only have to iterate once
+    if np.isnan(y_arr).any() | np.isnan(x_arr).any():
         y_arr = y_arr.copy()
         x_arr = x_arr.copy()
 
-        for idx, val in np.ndenumerate(y_arr):
-            if np.isnan(val):
+        for idx, y_val in np.ndenumerate(y_arr):
+            x_val = x_arr[idx]
+
+            if np.isnan(y_val):
                 y_arr[idx] = np.inf
 
-        for idx, val in np.ndenumerate(x_arr):
-            if np.isnan(val):
+            if np.isnan(x_val):
                 x_arr[idx] = np.inf
 
     return unravel_index(

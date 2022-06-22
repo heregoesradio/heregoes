@@ -5,7 +5,7 @@
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
-This is the core processing library used by [Here GOES Radiotelescope (2020)](https://heregoesradio.com/), a sculptural ground station for the GRB downlink of the NOAA weather satellite GOES-16. The library renders basic ABI and SUVI imagery, and offers some useful functions for navigating and projecting ABI data. Some additional convenience functions for working with 2D NumPy arrays are provided in [util.py](heregoes/util.py). To optimize for the real-time processing needs of Here GOES Radiotelescope, array functions are accelerated using [Numba](https://numba.pydata.org/) with parallelism controlled by environmental variables.
+This is the core processing library used by [Here GOES Radiotelescope (2020)](https://heregoesradio.com/), a sculptural ground station for the GRB downlink of the NOAA weather satellite GOES-16. The library renders basic ABI and SUVI imagery from netCDF, and offers some useful functions for navigating and projecting ABI data. Some additional convenience functions for working with 2D NumPy arrays are provided in [util.py](heregoes/util.py). To optimize for the real-time processing needs of Here GOES Radiotelescope, array functions are accelerated using [Numba](https://numba.pydata.org/) with parallelism controlled by environmental variables.
 
 <p float="left">
     <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/grb_g16_fulldisk_color_2019-09-04T170015Z.jpg">
