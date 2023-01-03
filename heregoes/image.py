@@ -66,11 +66,7 @@ class Image:
 
 class ABIImage(Image):
     def __init__(
-        self,
-        abi_nc,
-        index=slice(None, None),
-        gamma=1.0,
-        mask_fill=False,
+        self, abi_nc, index=slice(None, None), gamma=1.0, mask_fill=False,
     ):
         """
         Creates Cloud Moisture Imagery (CMI) following the CMIP ATBD: https://www.star.nesdis.noaa.gov/goesr/docs/ATBD/Imagery.pdf
@@ -258,12 +254,7 @@ class ABINaturalRGB(Image):
 
 class SUVIImage(Image):
     def __init__(
-        self,
-        suvi_nc,
-        shift=True,
-        flip=True,
-        dqf_correction=True,
-        mask_fill=False,
+        self, suvi_nc, shift=True, flip=True, dqf_correction=True, mask_fill=False,
     ):
         """
         Creates a 1-second 8-bit SUVI image made to look similar to what is shown on the SWPC website: https://www.swpc.noaa.gov/products/goes-solar-ultraviolet-imager-suvi
@@ -324,3 +315,7 @@ class SUVIImage(Image):
             )
 
         return self._bv
+
+    @bv.setter
+    def bv(self, value):
+        self._bv = value

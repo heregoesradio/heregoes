@@ -51,7 +51,9 @@ class AncillaryDataset:
         file_name = "_".join(
             (
                 self.abi_meta.platform_ID,
+                "abi",
                 self.abi_meta.instrument_meta.scene_id_safe,
+                str(int(self.abi_meta.instrument_meta.km)) + "km",
                 self.dataset_name,
             )
         ).lower()
@@ -102,7 +104,7 @@ class IREMIS(AncillaryDataset):
 
         self.abi_meta = abi_meta
         month = self.abi_meta.time_coverage_start.month
-        self.dataset_name = "iremis_abi_month" + str(month).zfill(2)
+        self.dataset_name = "iremis_month" + str(month).zfill(2)
 
         try:
             iremis_dir = Path(iremis_dir)
@@ -202,7 +204,7 @@ class WaterMask(AncillaryDataset):
         super(WaterMask, self).__init__()
 
         self.abi_meta = abi_meta
-        self.dataset_name = "gshhs_abi_" + gshhs_scale
+        self.dataset_name = "gshhs_" + gshhs_scale
 
         # https://scitools.org.uk/cartopy/docs/latest/crs/index.html#cartopy.crs.Globe
         goes_globe = ccrs.Globe(

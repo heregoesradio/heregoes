@@ -57,7 +57,15 @@ def minmax(arr):
 
 
 def nearest_scale(arr, k):
-    return cv2.resize(arr, None, fx=k, fy=k, interpolation=cv2.INTER_NEAREST)
+    # Let cv2 resize boolean matrices by casting to uint8, then back to bool
+    original_type = arr.dtype
+    if arr.dtype == bool:
+        cast_type = np.uint8
+    else:
+        cast_type = original_type
+    return cv2.resize(
+        arr.astype(cast_type), None, fx=k, fy=k, interpolation=cv2.INTER_NEAREST
+    ).astype(original_type)
 
 
 def x2(arr):

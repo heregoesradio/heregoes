@@ -296,8 +296,9 @@ class ABINavigation:
         )
         lon_deg = np.rad2deg(lambda_0 - np.arctan(s_y / (H - s_x)))
 
-        return np.atleast_1d(lat_deg).astype(np.float32), np.atleast_1d(lon_deg).astype(
-            np.float32
+        return (
+            np.atleast_1d(lat_deg).astype(np.float32),
+            np.atleast_1d(lon_deg).astype(np.float32),
         )
 
     @staticmethod
@@ -331,8 +332,9 @@ class ABINavigation:
             -s_y / np.sqrt(np.square(s_x) + np.square(s_y) + np.square(s_z))
         )
 
-        return np.atleast_1d(y_rad).astype(np.float32), np.atleast_1d(x_rad).astype(
-            np.float32
+        return (
+            np.atleast_1d(y_rad).astype(np.float32),
+            np.atleast_1d(x_rad).astype(np.float32),
         )
 
     @staticmethod

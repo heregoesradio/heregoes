@@ -102,10 +102,13 @@ class _ABIMeta:
         resolution = loaded_nc["Rad"].resolution
         if resolution == "y: 0.000014 rad x: 0.000014 rad":
             self.ifov = 14.0e-6
+            self.km = 0.5
         elif resolution == "y: 0.000028 rad x: 0.000028 rad":
             self.ifov = 28.0e-6
+            self.km = 1.0
         elif resolution == "y: 0.000056 rad x: 0.000056 rad":
             self.ifov = 56.0e-6
+            self.km = 2.0
 
         self.y = loaded_nc.dimensions["y"].size
         self.x = loaded_nc.dimensions["x"].size
