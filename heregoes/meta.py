@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, 2022.
+# Copyright (c) 2020-2023.
 
 # Author(s):
 
@@ -26,7 +26,7 @@ import os
 import netCDF4
 import numpy as np
 
-from heregoes import coefficients
+from heregoes.instrument import coefficients
 
 noaa_time_format = "%Y-%m-%dT%H:%M:%S.%fZ"
 cspp_time_format = "%Y-%m-%d %H:%M:%S.%f"
@@ -190,28 +190,26 @@ def nc_reader(nc, variable, index=slice(None), attribute=None):
 
 
 def image_filename(image):
-    # returns a safe filename using image metadata e.g. "g16_abi_conus_c02" or "g16_suvi_094"
+    # returns a safe filename using image metadata e.g. "g16_abi_conus_c02_2021-06-18T194117Z" or "g16_suvi_094_2020-11-11T062350Z"
     if image.meta.instrument_type_safe == "ABI":
-        filename = (
-            "_".join(
-                (
-                    image.meta.platform_ID,
-                    image.meta.instrument_type_safe,
-                    image.meta.instrument_meta.scene_id_safe,
-                    image.meta.instrument_meta.band_id_safe,
-                )
+        filename = "_".join(
+            (
+                image.meta.platform_ID.lower(),
+                image.meta.instrument_type_safe.lower(),
+                image.meta.instrument_meta.scene_id_safe.lower(),
+                image.meta.instrument_meta.band_id_safe.lower(),
+                image.meta.time_coverage_start.strftime(safe_time_format),
             )
-        ).lower()
+        )
 
     elif image.meta.instrument_type_safe == "SUVI":
-        filename = (
-            "_".join(
-                (
-                    image.meta.platform_ID,
-                    image.meta.instrument_type_safe,
-                    image.meta.instrument_meta.wavelength_safe,
-                )
+        filename = "_".join(
+            (
+                image.meta.platform_ID.lower(),
+                image.meta.instrument_type_safe.lower(),
+                image.meta.instrument_meta.wavelength_safe.lower(),
+                image.meta.time_coverage_start.strftime(safe_time_format),
             )
-        ).lower()
+        )
 
     return filename

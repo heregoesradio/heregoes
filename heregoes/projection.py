@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, 2022.
+# Copyright (c) 2020-2023.
 
 # Author(s):
 
@@ -161,7 +161,7 @@ class ABIProjection:
 
         powers = [2]  # make at least 1 overview at half size
         for i in range(2, max_num + 1):
-            power = 2 ** i
+            power = 2**i
             if power <= max(y, x) / min_size:
                 powers.append(power)
 

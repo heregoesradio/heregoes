@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, 2022.
+# Copyright (c) 2020-2023.
 
 # Author(s):
 
@@ -29,7 +29,8 @@ import numpy as np
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from scipy import ndimage
 
-from heregoes import abi, logger, meta, suvi, util
+from heregoes import logger, meta, util
+from heregoes.instrument import abi, suvi
 
 
 class Image:
@@ -142,10 +143,12 @@ class ABIImage(Image):
         if self._bv is None:
             if 1 <= self.meta.instrument_meta.band_id <= 6:
                 # calculate the range of possible reflectance factors from the provided valid range of radiance, and use it to normalize before the gamma correction
-                rf_min, rf_max = (
+                self.rf_min, self.rf_max = (
                     self.rad_range * np.pi * np.square(self.meta.instrument_meta.esd)
                 ) / self.meta.instrument_meta.esun
-                self._bv = abi.rf2bv(self.cmi, min=rf_min, max=rf_max, gamma=self.gamma)
+                self._bv = abi.rf2bv(
+                    self.cmi, min=self.rf_min, max=self.rf_max, gamma=self.gamma
+                )
 
             elif 7 <= self.meta.instrument_meta.band_id <= 16:
                 self._bv = abi.bt2bv(self.cmi)
@@ -167,6 +170,7 @@ class ABINaturalRGB(Image):
         g_coeff=0.1,
         b_coeff=0.45,
         upscale=False,
+        upscale_algo=cv2.INTER_CUBIC,
         gamma=1.0,
         mask_fill=False,
     ):
@@ -177,6 +181,7 @@ class ABINaturalRGB(Image):
             - `red_nc`, `green_nc`, `blue_nc`: Strings or Path objects pointing to GOES-R ABI L1b Radiance netCDF files for the red (0.64 μm), green (0.86 μm), and blue (0.47 μm) components
             - `r_coeff`, `g_coeff`, `b_coeff`: Coefficients for the fractional combination "green" band method described in Bah et. al (2018)
             - `upscale`: Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
+            - `upscale_algo`: The OpenCV interpolation algorithm used for upscaling green and blue images. See https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121. Default `cv2.INTER_CUBIC`
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
             - `mask_fill` Optionally fills masked radiance with np.nan and masked DQF with 0. Default `False`
         """
@@ -192,7 +197,7 @@ class ABINaturalRGB(Image):
             green_image.bv = cv2.resize(
                 green_image.bv,
                 (red_image.bv.shape[1], red_image.bv.shape[0]),
-                interpolation=cv2.INTER_LANCZOS4,
+                interpolation=upscale_algo,
             )
             green_image.dqf = cv2.resize(
                 green_image.bv,
@@ -202,7 +207,7 @@ class ABINaturalRGB(Image):
             blue_image.bv = cv2.resize(
                 blue_image.bv,
                 (red_image.bv.shape[1], red_image.bv.shape[0]),
-                interpolation=cv2.INTER_LANCZOS4,
+                interpolation=upscale_algo,
             )
             blue_image.dqf = cv2.resize(
                 blue_image.bv,
@@ -254,7 +259,13 @@ class ABINaturalRGB(Image):
 
 class SUVIImage(Image):
     def __init__(
-        self, suvi_nc, shift=True, flip=True, dqf_correction=True, mask_fill=False,
+        self,
+        suvi_nc,
+        shift=True,
+        shift_limit=100,
+        flip=True,
+        dqf_correction=True,
+        mask_fill=False,
     ):
         """
         Creates a 1-second 8-bit SUVI image made to look similar to what is shown on the SWPC website: https://www.swpc.noaa.gov/products/goes-solar-ultraviolet-imager-suvi
@@ -262,6 +273,7 @@ class SUVIImage(Image):
         Arguments:
             - `suvi_nc`: String or Path object pointing to a 1-second exposure GOES-R SUVI L1b Solar Imagery netCDF file
             - `shift`: Whether to try moving the center of the Sun to the center of the image. Default `True`
+            - `shift_limit` Limits the shift operation that moves the Sun to the center of the image to a maximum of `shift_limit` pixels. Default `100`
             - `flip`: Whether to flip the SUVI image from S-N to N-S to match SWPC. Default `True`
             - `dqf_correction`: Whether to interpolate over bad pixels marked by DQF. Default `True`
             - `mask_fill` Optionally fills masked radiance with np.nan and masked DQF with 0. Default `False`
@@ -293,10 +305,16 @@ class SUVIImage(Image):
             )
 
         if shift:
-            # move the sun to the center of the image using default ndimage spline interpolation
-            # if the sun is more than 100 pixels away from center in both axes, do nothing
-            if abs(x_offset) < 100 and abs(y_offset) < 100:
-                self.rad = ndimage.shift(self.rad, (y_offset, x_offset), mode="wrap")
+            # move the sun to the center of the image using default ndimage spline interpolation to a maximum of `shift_limit` pixels
+            self.rad = ndimage.shift(
+                self.rad,
+                (
+                    np.sign(y_offset) * min(np.abs(y_offset), shift_limit),
+                    np.sign(x_offset) * min(np.abs(x_offset), shift_limit),
+                ),
+                mode="constant",
+                cval=0.0,
+            )
 
         if flip:
             # SUVI arrays are S-N, make them N-S to match SWPC

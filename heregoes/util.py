@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2021, 2022.
+# Copyright (c) 2020-2023.
 
 # Author(s):
 
@@ -77,7 +77,9 @@ def x4(arr):
 
 
 @heregoes_njit_noparallel
-def window_slice(arr, center_index, outer_radius, inner_radius=0, replace_inner=True):
+def window_slice(
+    arr, center_index, outer_radius, inner_radius=0, copy=True, replace_inner=True
+):
     """
     Returns the square window of array `arr` centered at `center_index` with radius `outer_radius` and diameter `outer_radius` * 2 + 1.
     The central value in the window is optionally replaced with np.nan. Additional inner values may be replaced with np.nan by setting `inner_radius`.
@@ -86,7 +88,11 @@ def window_slice(arr, center_index, outer_radius, inner_radius=0, replace_inner=
     y, x = center_index
     window = arr[
         y - outer_radius : y + outer_radius + 1, x - outer_radius : x + outer_radius + 1
-    ].copy()
+    ]
+
+    if copy or replace_inner:
+        window = window.copy()
+
     window_center_y = window.shape[0] // 2
     window_center_x = window.shape[1] // 2
 
@@ -217,19 +223,12 @@ def nearest_2d(y_arr, x_arr, target_y, target_x):
     if y_arr.shape != x_arr.shape:
         return
 
-    # For our use case, if y_arr contains nan then x_arr probably does too. By assuming this we only have to iterate once
     if np.isnan(y_arr).any() | np.isnan(x_arr).any():
         y_arr = y_arr.copy()
         x_arr = x_arr.copy()
 
-        for idx, y_val in np.ndenumerate(y_arr):
-            x_val = x_arr[idx]
-
-            if np.isnan(y_val):
-                y_arr[idx] = np.inf
-
-            if np.isnan(x_val):
-                x_arr[idx] = np.inf
+        y_arr.ravel()[np.nonzero(np.isnan(y_arr.ravel()))] = np.inf
+        x_arr.ravel()[np.nonzero(np.isnan(x_arr.ravel()))] = np.inf
 
     return unravel_index(
         int(np.argmin(np.maximum(np.abs(y_arr - target_y), np.abs(x_arr - target_x)))),

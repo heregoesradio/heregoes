@@ -168,7 +168,12 @@ def test_abi_image():
         abi_image.save(output_dir.joinpath(meta.image_filename(abi_image) + ".jpg"))
 
     abi_rgb = image.ABINaturalRGB(
-        abi_mc02_nc, abi_mc03_nc, abi_mc01_nc, gamma=0.75, mask_fill=ABI_MASK_FILL
+        abi_mc02_nc,
+        abi_mc03_nc,
+        abi_mc01_nc,
+        upscale=True,
+        gamma=0.75,
+        mask_fill=ABI_MASK_FILL,
     )
 
     assert abi_rgb.bv.dtype == np.uint8
