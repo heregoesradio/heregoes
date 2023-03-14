@@ -78,7 +78,7 @@ def x4(arr):
 
 @heregoes_njit_noparallel
 def window_slice(
-    arr, center_index, outer_radius, inner_radius=0, copy=True, replace_inner=True
+    arr, center_index, outer_radius, inner_radius=0, replace_inner=True
 ):
     """
     Returns the square window of array `arr` centered at `center_index` with radius `outer_radius` and diameter `outer_radius` * 2 + 1.
@@ -88,10 +88,7 @@ def window_slice(
     y, x = center_index
     window = arr[
         y - outer_radius : y + outer_radius + 1, x - outer_radius : x + outer_radius + 1
-    ]
-
-    if copy or replace_inner:
-        window = window.copy()
+    ].copy()
 
     window_center_y = window.shape[0] // 2
     window_center_x = window.shape[1] // 2
