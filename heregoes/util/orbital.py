@@ -28,7 +28,7 @@ import datetime
 
 import numpy as np
 
-from heregoes import heregoes_njit_noparallel
+from heregoes.util import njit
 
 F = 1 / 298.257223563  # Earth flattening WGS-84
 A = 6378.137  # WGS84 Equatorial radius
@@ -45,17 +45,17 @@ def jdays2000(utc_time):
     return (utc_time - j2000).total_seconds() / 86400
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 def norm_az(az_rad):
     return np.atleast_1d((az_rad + (2.0 * np.pi)) % (2.0 * np.pi)).astype(np.float32)
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 def el2za(el_rad):
     return np.atleast_1d(np.pi / 2.0 - el_rad).astype(np.float32)
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 def za2el(za_rad):
     return np.atleast_1d(np.pi / 2.0 - za_rad).astype(np.float32)
 
@@ -64,7 +64,7 @@ def za2el(za_rad):
 ##########################Modified Pyorbital code##########################
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L110
 def _local_hour_angle(jdays2000, longitude, right_ascension):
     """Hour angle at *utc_time* for the given *longitude* and
@@ -74,7 +74,7 @@ def _local_hour_angle(jdays2000, longitude, right_ascension):
     return _lmst(jdays2000, longitude) - right_ascension
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L66
 def _lmst(jdays2000, longitude):
     """Local mean sidereal time, computed from *utc_time* and *longitude*.
@@ -83,7 +83,7 @@ def _lmst(jdays2000, longitude):
     return gmst(jdays2000) + longitude
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L54
 def gmst(jdays2000):
     """Greenwich mean sidereal utc_time, in radians.
@@ -97,7 +97,7 @@ def gmst(jdays2000):
     return np.deg2rad(theta / 240.0) % (2.0 * np.pi)
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L91
 def sun_ra_dec(jdays2000):
     """Right ascension and declination of the sun at *utc_time*."""
@@ -121,7 +121,7 @@ def sun_ra_dec(jdays2000):
     return right_ascension, declination
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L73
 def sun_ecliptic_longitude(jdays2000):
     """Ecliptic longitude of the sun at *utc_time*."""
@@ -145,7 +145,7 @@ def sun_ecliptic_longitude(jdays2000):
     return np.deg2rad(l__)
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L174
 def observer_position(jdays2000, lon, lat, alt):
     """Calculate observer ECI position.
@@ -171,7 +171,7 @@ def observer_position(jdays2000, lon, lat, alt):
     return (x, y, z), (vx, vy, vz)
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L118
 def get_alt_az(jdays2000, lon, lat):
     """Return sun altitude and azimuth from *utc_time*, *lon*, and *lat*.
@@ -193,7 +193,7 @@ def get_alt_az(jdays2000, lon, lat):
     return alt, az
 
 
-@heregoes_njit_noparallel
+@njit.heregoes_njit_noparallel
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/orbital.py#L244
 def get_observer_look(sat_lon, sat_lat, sat_alt, jdays2000, lon, lat, alt):
     """Calculate observers look angle to a satellite.

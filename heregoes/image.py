@@ -20,17 +20,21 @@
 
 """Basic classes for creating ABI and SUVI imagery"""
 
+import logging
 import re
 from pathlib import Path
 
 import cv2
-import netCDF4
 import numpy as np
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from scipy import ndimage
 
-from heregoes import logger, meta, util
-from heregoes.instrument import abi, suvi
+from heregoes import exceptions, load
+from heregoes.goesr import abi, suvi
+from heregoes.util import make_8bit
+
+logger = logging.getLogger("heregoes-logger")
+safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
 
 class Image:
@@ -40,8 +44,17 @@ class Image:
         self.quality = None
         self._bv = None
 
-    def save(self, file_path):
+    def save(self, file_path=Path("."), file_ext=".png"):
         file_path = Path(file_path)
+
+        # if a directory path is provided instead of a file path, append a default filename
+        if file_path.is_dir():
+            file_path = file_path.joinpath(self.default_filename)
+
+        # append an image suffix if not in the file path
+        if not (file_path.suffix):
+            file_path = file_path.with_suffix(file_ext)
+
         file_dir = file_path.parent.resolve()
         file_dir.mkdir(parents=True, exist_ok=True)
 
@@ -57,17 +70,21 @@ class Image:
         try:
             result = cv2.imwrite(str(file_path), self.bv, cv2_quality)
             if not result:
-                raise ValueError(f"Could not save image to {file_path}")
-
+                raise exceptions.HereGOESIOError
         except Exception as e:
-            logger.critical(e)
-
-            return
+            raise exceptions.HereGOESIOWriteException(
+                caller=f"{__name__}.{self.__class__.__name__}",
+                filepath=file_path,
+                exception=e,
+            )
 
 
 class ABIImage(Image):
     def __init__(
-        self, abi_nc, index=slice(None, None), gamma=1.0, mask_fill=False,
+        self,
+        abi_nc,
+        index=slice(None, None),
+        gamma=1.0,
     ):
         """
         Creates Cloud Moisture Imagery (CMI) following the CMIP ATBD: https://www.star.nesdis.noaa.gov/goesr/docs/ATBD/Imagery.pdf
@@ -85,51 +102,50 @@ class ABIImage(Image):
             - `abi_nc`: String or Path object pointing to a GOES-R ABI L1b Radiance netCDF file
             - `index`: Optionally process an ABI image for a single array index or slice
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
-            - `mask_fill` Optionally fills masked radiance with np.nan and masked DQF with 0. Default `False`
         """
 
         super(ABIImage, self).__init__()
         self.gamma = gamma
         self._cmi = None
 
-        with netCDF4.Dataset(abi_nc, "r") as loaded_abi_nc:
-            self.rad = np.atleast_1d(loaded_abi_nc["Rad"][index])
-            valid_range = loaded_abi_nc["Rad"].valid_range
-            scale_factor = loaded_abi_nc["Rad"].scale_factor
-            add_offset = loaded_abi_nc["Rad"].add_offset
-            self.dqf = np.atleast_1d(loaded_abi_nc["DQF"][index])
+        self.abi_data = load(abi_nc)
+        self.rad = self.abi_data["Rad"][index]
+        self.dqf = self.abi_data["DQF"][index]
+        self.quality = self.abi_data["Rad"].quality
 
         self.rad_range = np.array(
-            valid_range * scale_factor + add_offset, dtype=np.float32
+            self.abi_data["Rad"].valid_range * self.abi_data["Rad"].scale_factor
+            + self.abi_data["Rad"].add_offset,
+            dtype=np.float32,
         )
 
-        if self.rad.size > 1:
-            # count of non-masked elements over total number of elements
-            self.quality = self.rad.count() / self.rad.size
-
-            if mask_fill:
-                self.rad[self.rad.mask] = np.nan
-                self.dqf[self.dqf.mask] = 0
-
-        self.meta = meta.NCMeta(abi_nc)
+        self.default_filename = "_".join(
+            (
+                self.abi_data.platform_ID.lower(),
+                self.abi_data.instrument_type_safe.lower(),
+                self.abi_data.scene_id_safe.lower(),
+                self.abi_data.band_id_safe.lower(),
+                self.abi_data.time_coverage_start.strftime(safe_time_format),
+            )
+        )
 
     @property
     def cmi(self):
         if self._cmi is None:
-            if 1 <= self.meta.instrument_meta.band_id <= 6:
+            if 1 <= self.abi_data["band_id"][:] <= 6:
                 self._cmi = abi.rad2rf(
                     self.rad,
-                    self.meta.instrument_meta.esd,
-                    self.meta.instrument_meta.esun,
+                    self.abi_data["earth_sun_distance_anomaly_in_AU"][:].item(),
+                    self.abi_data["esun"][:].item(),
                 )
 
-            elif 7 <= self.meta.instrument_meta.band_id <= 16:
+            elif 7 <= self.abi_data["band_id"][:] <= 16:
                 self._cmi = abi.rad2bt(
                     self.rad,
-                    self.meta.instrument_meta.planck_fk1,
-                    self.meta.instrument_meta.planck_fk2,
-                    self.meta.instrument_meta.planck_bc1,
-                    self.meta.instrument_meta.planck_bc2,
+                    self.abi_data["planck_fk1"][:].item(),
+                    self.abi_data["planck_fk2"][:].item(),
+                    self.abi_data["planck_bc1"][:].item(),
+                    self.abi_data["planck_bc2"][:].item(),
                 )
 
         return self._cmi
@@ -141,16 +157,18 @@ class ABIImage(Image):
     @property
     def bv(self):
         if self._bv is None:
-            if 1 <= self.meta.instrument_meta.band_id <= 6:
+            if 1 <= self.abi_data["band_id"][:] <= 6:
                 # calculate the range of possible reflectance factors from the provided valid range of radiance, and use it to normalize before the gamma correction
                 self.rf_min, self.rf_max = (
-                    self.rad_range * np.pi * np.square(self.meta.instrument_meta.esd)
-                ) / self.meta.instrument_meta.esun
+                    self.rad_range
+                    * np.pi
+                    * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][:])
+                ) / self.abi_data["esun"][:]
                 self._bv = abi.rf2bv(
                     self.cmi, min=self.rf_min, max=self.rf_max, gamma=self.gamma
                 )
 
-            elif 7 <= self.meta.instrument_meta.band_id <= 16:
+            elif 7 <= self.abi_data["band_id"][:] <= 16:
                 self._bv = abi.bt2bv(self.cmi)
 
         return self._bv
@@ -172,7 +190,6 @@ class ABINaturalRGB(Image):
         upscale=False,
         upscale_algo=cv2.INTER_CUBIC,
         gamma=1.0,
-        mask_fill=False,
     ):
         """
         Creates the "natural" color RGB for ABI following https://doi.org/10.1029/2018EA000379 in BGR order
@@ -183,14 +200,13 @@ class ABINaturalRGB(Image):
             - `upscale`: Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
             - `upscale_algo`: The OpenCV interpolation algorithm used for upscaling green and blue images. See https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121. Default `cv2.INTER_CUBIC`
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
-            - `mask_fill` Optionally fills masked radiance with np.nan and masked DQF with 0. Default `False`
         """
 
         super(ABINaturalRGB, self).__init__()
 
-        red_image = ABIImage(red_nc, gamma=gamma, mask_fill=mask_fill)
-        green_image = ABIImage(green_nc, gamma=gamma, mask_fill=mask_fill)
-        blue_image = ABIImage(blue_nc, gamma=gamma, mask_fill=mask_fill)
+        red_image = ABIImage(red_nc, gamma=gamma)
+        green_image = ABIImage(green_nc, gamma=gamma)
+        blue_image = ABIImage(blue_nc, gamma=gamma)
 
         if upscale:
             # upscale green and blue to the size of red
@@ -234,7 +250,7 @@ class ABINaturalRGB(Image):
             + (blue_image.bv * b_coeff)
         )
 
-        self.bv = util.make_8bit(
+        self.bv = make_8bit(
             np.stack([blue_image.bv, green_image.bv, red_image.bv], axis=2)
         )
         self.quality = (
@@ -243,18 +259,28 @@ class ABINaturalRGB(Image):
         self.dqf = np.stack([blue_image.dqf, green_image.dqf, red_image.dqf], axis=2)
 
         if upscale:
-            self.meta = red_image.meta
+            self.abi_data = red_image.abi_data
 
         else:
-            self.meta = green_image.meta
+            self.abi_data = green_image.abi_data
 
-        self.meta.instrument_meta.band_id = (
-            self.meta.instrument_meta.band_id_safe
-        ) = "Color"
-        self.meta.dataset_name = "RGB from " + ", ".join(
+        self.abi_data["band_id"][:] = np.atleast_1d(0)
+        self.abi_data.band_id_safe = "Color"
+
+        self.abi_data.dataset_name = "RGB from " + ", ".join(
             (str(red_nc), str(green_nc), str(blue_nc))
         )
-        self.meta.instrument_meta.rgb = [str(red_nc), str(green_nc), str(blue_nc)]
+        self.abi_data.rgb = [str(red_nc), str(green_nc), str(blue_nc)]
+
+        self.default_filename = "_".join(
+            (
+                self.abi_data.platform_ID.lower(),
+                self.abi_data.instrument_type_safe.lower(),
+                self.abi_data.scene_id_safe.lower(),
+                self.abi_data.band_id_safe.lower(),
+                self.abi_data.time_coverage_start.strftime(safe_time_format),
+            )
+        )
 
 
 class SUVIImage(Image):
@@ -265,7 +291,6 @@ class SUVIImage(Image):
         shift_limit=100,
         flip=True,
         dqf_correction=True,
-        mask_fill=False,
     ):
         """
         Creates a 1-second 8-bit SUVI image made to look similar to what is shown on the SWPC website: https://www.swpc.noaa.gov/products/goes-solar-ultraviolet-imager-suvi
@@ -276,22 +301,31 @@ class SUVIImage(Image):
             - `shift_limit` Limits the shift operation that moves the Sun to the center of the image to a maximum of `shift_limit` pixels. Default `100`
             - `flip`: Whether to flip the SUVI image from S-N to N-S to match SWPC. Default `True`
             - `dqf_correction`: Whether to interpolate over bad pixels marked by DQF. Default `True`
-            - `mask_fill` Optionally fills masked radiance with np.nan and masked DQF with 0. Default `False`
         """
 
         super(SUVIImage, self).__init__()
 
-        with netCDF4.Dataset(suvi_nc, "r") as loaded_nc:
-            self.rad = loaded_nc["RAD"][:]
-            # count of non-masked elements over total number of elements
-            self.quality = self.rad.count() / self.rad.size
-            self.dqf = loaded_nc["DQF"][:]
-            x_offset = 640 - loaded_nc["CRPIX1"][:]
-            y_offset = 640 - loaded_nc["CRPIX2"][:]
+        self.suvi_data = load(suvi_nc)
 
-        if mask_fill:
-            self.rad[self.rad.mask] = np.nan
-            self.dqf[self.dqf.mask] = 0
+        if self.suvi_data["CMD_EXP"][:] != 1.0:
+            logger.warning(
+                "Short SUVI exposure detected: SUVI exposures shorter than 1 second are not officially supported."
+            )
+
+        self.rad = self.suvi_data["RAD"][:]
+        self.dqf = self.suvi_data["DQF"][:]
+        self.quality = self.suvi_data["RAD"].quality
+        x_offset = 640 - self.suvi_data["CRPIX1"][:]
+        y_offset = 640 - self.suvi_data["CRPIX2"][:]
+
+        self.default_filename = "_".join(
+            (
+                self.suvi_data.platform_ID.lower(),
+                self.suvi_data.instrument_type_safe.lower(),
+                self.suvi_data.wavelength_safe.lower(),
+                self.suvi_data.time_coverage_start.strftime(safe_time_format),
+            )
+        )
 
         if dqf_correction:
             # first we dilate the DQF so it covers the bad pixel halos (3x3 kernel)
@@ -320,16 +354,14 @@ class SUVIImage(Image):
             # SUVI arrays are S-N, make them N-S to match SWPC
             self.rad = np.flipud(self.rad)
 
-        self.meta = meta.NCMeta(suvi_nc)
-
     @property
     def bv(self):
         if self._bv is None:
             self._bv = suvi.rad2bv(
                 self.rad,
-                *self.meta.instrument_meta.coefficients.input_range,
-                self.meta.instrument_meta.coefficients.asinh_a,
-                *self.meta.instrument_meta.coefficients.output_range,
+                *self.suvi_data.instrument_coefficients.input_range,
+                self.suvi_data.instrument_coefficients.asinh_a,
+                *self.suvi_data.instrument_coefficients.output_range,
             )
 
         return self._bv

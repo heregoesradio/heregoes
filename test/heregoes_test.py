@@ -1,4 +1,4 @@
-# Copyright (c) 2022.
+# Copyright (c) 2022-2023.
 
 # Author(s):
 
@@ -20,15 +20,15 @@
 
 """Test cases for checking imagery and navigation outputs"""
 
-import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
 
+from heregoes import ancillary, exceptions, image, load, navigation, projection
+from heregoes.util import minmax
+
 SCRIPT_PATH = Path(__file__).parent.resolve()
-sys.path.append(str(SCRIPT_PATH.parent.resolve()))
-from heregoes import ancillary, image, meta, navigation, projection, util
 
 input_dir = SCRIPT_PATH.joinpath("input")
 input_dir.mkdir(parents=True, exist_ok=True)
@@ -37,9 +37,6 @@ output_dir.mkdir(parents=True, exist_ok=True)
 
 for output_file in output_dir.glob("*"):
     output_file.unlink()
-
-ABI_MASK_FILL = True
-SUVI_MASK_FILL = False
 
 # abi
 abi_mc01_nc = input_dir.joinpath(
@@ -159,13 +156,13 @@ suvi_ncs = [
 
 def test_abi_image():
     for abi_nc in abi_ncs:
-        abi_image = image.ABIImage(abi_nc, gamma=0.75, mask_fill=ABI_MASK_FILL)
+        abi_image = image.ABIImage(abi_nc, gamma=0.75)
 
         assert abi_image.rad.dtype == np.float32
         assert abi_image.cmi.dtype == np.float32
         assert abi_image.bv.dtype == np.uint8
 
-        abi_image.save(output_dir.joinpath(meta.image_filename(abi_image) + ".jpg"))
+        abi_image.save(file_path=output_dir, file_ext=".jpg")
 
     abi_rgb = image.ABINaturalRGB(
         abi_mc02_nc,
@@ -173,30 +170,27 @@ def test_abi_image():
         abi_mc01_nc,
         upscale=True,
         gamma=0.75,
-        mask_fill=ABI_MASK_FILL,
     )
 
     assert abi_rgb.bv.dtype == np.uint8
 
-    abi_rgb.save(output_dir.joinpath(meta.image_filename(abi_rgb) + ".jpeg"))
+    abi_rgb.save(file_path=output_dir, file_ext=".jpeg")
 
-    abi_rgb = image.ABINaturalRGB(
-        abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, gamma=0.75, mask_fill=ABI_MASK_FILL
-    )
+    abi_rgb = image.ABINaturalRGB(abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, gamma=0.75)
 
     assert abi_rgb.bv.dtype == np.uint8
 
-    abi_rgb.save(output_dir.joinpath(meta.image_filename(abi_rgb) + ".jpeg"))
+    abi_rgb.save(file_path=output_dir, file_ext=".jpeg")
 
 
 def test_suvi_image():
     for suvi_nc in suvi_ncs:
-        suvi_image = image.SUVIImage(suvi_nc, mask_fill=SUVI_MASK_FILL)
+        suvi_image = image.SUVIImage(suvi_nc)
 
         assert suvi_image.rad.dtype == np.float32
         assert suvi_image.bv.dtype == np.uint8
 
-        suvi_image.save(output_dir.joinpath(meta.image_filename(suvi_image) + ".png"))
+        suvi_image.save(file_path=output_dir, file_ext=".png")
 
 
 def test_projection():
@@ -206,28 +200,25 @@ def test_projection():
         abi_mc01_nc,
         upscale=True,
         gamma=1.0,
-        mask_fill=ABI_MASK_FILL,
     )
-    abi_projection = projection.ABIProjection(abi_rgb.meta)
+    abi_projection = projection.ABIProjection(abi_rgb.abi_data)
     abi_rgb = abi_projection.resample2cog(
-        abi_rgb.bv, output_dir.joinpath(meta.image_filename(abi_rgb) + ".tiff")
+        abi_rgb.bv, output_dir.joinpath(abi_rgb.default_filename + ".tiff")
     )
 
-    abi_rgb = image.ABINaturalRGB(
-        abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, gamma=0.75, mask_fill=ABI_MASK_FILL
-    )
-    abi_projection = projection.ABIProjection(abi_rgb.meta)
+    abi_rgb = image.ABINaturalRGB(abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, gamma=0.75)
+    abi_projection = projection.ABIProjection(abi_rgb.abi_data)
     abi_rgb = abi_projection.resample2cog(
-        abi_rgb.bv, output_dir.joinpath(meta.image_filename(abi_rgb) + ".tiff")
+        abi_rgb.bv, output_dir.joinpath(abi_rgb.default_filename + ".tiff")
     )
 
 
 def test_navigation():
     idx = (92, 42)
 
-    abi_meta = meta.NCMeta(abi_mc07_nc)
+    abi_data = load(abi_mc07_nc)
 
-    abi_nav = navigation.ABINavigation(abi_meta, precise_sun=False)
+    abi_nav = navigation.ABINavigation(abi_data, precise_sun=False)
 
     assert abi_nav.lat_deg.dtype == np.float32
     assert abi_nav.lon_deg.dtype == np.float32
@@ -248,7 +239,7 @@ def test_navigation():
     assert abi_nav.sun_az[idx] == 3.9760777950286865
 
     # test on astropy sun
-    abi_nav = navigation.ABINavigation(abi_meta, index=idx, precise_sun=True)
+    abi_nav = navigation.ABINavigation(abi_data, index=idx, precise_sun=True)
 
     assert abi_nav.sun_za.dtype == np.float32
     assert abi_nav.sun_az.dtype == np.float32
@@ -256,7 +247,7 @@ def test_navigation():
     assert abi_nav.sun_az[0] == 3.976273775100708
 
     # test with height correction
-    abi_nav = navigation.ABINavigation(abi_meta, precise_sun=False, hae_m=1.2345678)
+    abi_nav = navigation.ABINavigation(abi_data, precise_sun=False, hae_m=1.2345678)
 
     assert abi_nav.lat_deg.dtype == np.float32
     assert abi_nav.lon_deg.dtype == np.float32
@@ -278,7 +269,7 @@ def test_navigation():
 
     # test with astropy sun and height correction
     abi_nav = navigation.ABINavigation(
-        abi_meta, index=idx, precise_sun=True, hae_m=1.2345678
+        abi_data, index=idx, precise_sun=True, hae_m=1.2345678
     )
 
     assert abi_nav.sun_za.dtype == np.float32
@@ -288,41 +279,68 @@ def test_navigation():
 
     # test on a navigation dataset that does not contain NaNs (G16 meso)
     abi_nav = navigation.ABINavigation(
-        abi_meta, lat_deg=44.72609499, lon_deg=-93.02279070
+        abi_data, lat_deg=44.72609499, lon_deg=-93.02279070
     )
     assert abi_nav.index == idx
 
     # test on a navigation dataset that contains NaNs (G16 CONUS)
-    abi_meta = meta.NCMeta(abi_cc07_nc)
+    abi_data = load(abi_cc07_nc)
     abi_nav = navigation.ABINavigation(
-        abi_meta, lat_deg=44.72609499, lon_deg=-93.02279070
+        abi_data, lat_deg=44.72609499, lon_deg=-93.02279070
     )
     assert abi_nav.index == (192, 1152)
 
 
 def test_ancillary():
-    abi_meta = meta.NCMeta(abi_cc07_nc)
-    water = ancillary.WaterMask(abi_meta, rivers=True)
+    abi_data = load(abi_cc07_nc)
+    water = ancillary.WaterMask(abi_data, rivers=True)
 
     assert water.data["water_mask"].dtype == bool
     assert water.data["water_mask"].shape == (
-        abi_meta.instrument_meta.y,
-        abi_meta.instrument_meta.x,
+        abi_data.dimensions["y"].size,
+        abi_data.dimensions["x"].size,
     )
 
     water.save(save_dir=output_dir)
     cv2.imwrite(str(output_dir.joinpath("water.png")), water.data["water_mask"] * 255)
 
-    iremis = ancillary.IREMIS(abi_meta)
+    iremis = ancillary.IREMIS(abi_data)
 
     assert iremis.data["c07_land_emissivity"].dtype == np.float32
     assert iremis.data["c07_land_emissivity"].shape == (
-        abi_meta.instrument_meta.y,
-        abi_meta.instrument_meta.x,
+        abi_data.dimensions["y"].size,
+        abi_data.dimensions["x"].size,
     )
 
     iremis.save(save_dir=output_dir)
     cv2.imwrite(
         str(output_dir.joinpath("iremis.png")),
-        util.minmax(iremis.data["c07_land_emissivity"]) * 255,
+        minmax(iremis.data["c07_land_emissivity"]) * 255,
     )
+
+
+def test_exceptions():
+    try:
+        abi_data = load("not_a_real_netcdf.nc")
+
+    except Exception as e:
+        assert type(e) == exceptions.HereGOESUnsupportedProductException
+
+    try:
+        abi_data = load("fake_abi-l1b_netcdf.nc")
+
+    except Exception as e:
+        assert type(e) == exceptions.HereGOESIOReadException
+
+    try:
+        suvi_data = load("fake_suvi-l1b_netcdf.nc")
+
+    except Exception as e:
+        assert type(e) == exceptions.HereGOESIOReadException
+
+    try:
+        abi_image = image.ABIImage(abi_mc07_nc)
+        abi_image.save(file_path=output_dir, file_ext=".not_a_file_extension")
+
+    except Exception as e:
+        assert type(e) == exceptions.HereGOESIOWriteException

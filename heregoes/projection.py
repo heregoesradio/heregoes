@@ -18,12 +18,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import uuid
 
 import numpy as np
 from osgeo import gdal
 
-from heregoes import GDAL_PARALLEL, NUM_CPUS
+gdal.UseExceptions()
+
+from heregoes import NUM_CPUS
+
+GDAL_PARALLEL = False
+if os.getenv("HEREGOES_ENV_PARALLEL", "False").lower() == "true":
+    GDAL_PARALLEL = True
 
 
 class ABIProjection:
@@ -31,7 +38,7 @@ class ABIProjection:
     This is a class for projecting NumPy arrays to and from the ABI fixed grid in memory with GDAL.
 
     Arguments:
-        - `abi_meta`: The NCMeta object formed on a GOES-R ABI L1b Radiance netCDF file
+        - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
 
     Class methods:
         - `resample2abi(latlon_array)` resamples an array with WGS84 lat/lon projection to the ABI fixed grid domain. Returns the resampled array if convert_np is `True` (default), otherwise returns the GDAL dataset
@@ -39,31 +46,27 @@ class ABIProjection:
         - `resample2cog(abi_array, cog_filepath)` resamples an ABI array from the ABI fixed grid domain to WGS84 lat/lon projection and saves to a Cloud Optimized GeoTIFF (COG) at the filepath `cog_filepath`
     """
 
-    def __init__(self, abi_meta):
+    def __init__(self, abi_data):
+        self.abi_data = abi_data
+        h = self.abi_data["goes_imager_projection"].perspective_point_height
+        a = self.abi_data["goes_imager_projection"].semi_major_axis
+        b = self.abi_data["goes_imager_projection"].semi_minor_axis
+        f = 1 / self.abi_data["goes_imager_projection"].inverse_flattening
+        lat_0 = self.abi_data["goes_imager_projection"].latitude_of_projection_origin
+        lon_0 = self.abi_data["goes_imager_projection"].longitude_of_projection_origin
+        sweep = self.abi_data["goes_imager_projection"].sweep_angle_axis
 
-        self.abi_meta = abi_meta
-        h = self.abi_meta.instrument_meta.perspective_point_height
-        a = self.abi_meta.instrument_meta.semi_major_axis
-        b = self.abi_meta.instrument_meta.semi_minor_axis
-        f = 1 / self.abi_meta.instrument_meta.inverse_flattening
-        lat_0 = self.abi_meta.instrument_meta.latitude_of_projection_origin
-        lon_0 = self.abi_meta.instrument_meta.longitude_of_projection_origin
-        sweep = self.abi_meta.instrument_meta.sweep_angle_axis
-
-        ul_x = self.abi_meta.instrument_meta.x_image_bounds[0] * h
-        ul_y = self.abi_meta.instrument_meta.y_image_bounds[0] * h
-        lr_x = self.abi_meta.instrument_meta.x_image_bounds[1] * h
-        lr_y = self.abi_meta.instrument_meta.y_image_bounds[1] * h
+        ul_x = self.abi_data["x_image_bounds"][0] * h
+        ul_y = self.abi_data["y_image_bounds"][0] * h
+        lr_x = self.abi_data["x_image_bounds"][1] * h
+        lr_y = self.abi_data["y_image_bounds"][1] * h
         self.abi_bounds = [ul_x, ul_y, lr_x, lr_y]
 
         self._intermediate_format = "GTiff"
         self._intermediate_gdal_options = ["COMPRESS=NONE", f"NUM_THREADS={NUM_CPUS}"]
-        # only used for file outputs
-        self._final_gdal_options = []
 
-        if self.abi_meta.instrument_meta.band_id == "Color":
+        if self.abi_data.band_id_safe == "Color":
             self._intermediate_gdal_options += ["PHOTOMETRIC=RGB"]
-            self._final_gdal_options += ["PHOTOMETRIC=RGB"]
 
         self.latlon_srs = "+proj=latlon +ellps=WGS84 +datum=WGS84 +no_defs"
         self.abi_srs = f"+proj=geos +h={h} +a={a} +b={b} +f={f} +lat_0={lat_0} +lon_0={lon_0} +x_0=0.0 y_0=0.0 +sweep={sweep} +ellps=GRS80 +no_defs"
@@ -154,19 +157,6 @@ class ABIProjection:
 
         return resampled
 
-    def _cog_overviews(self, max_num=10, min_size=256):
-        # creates a list of overviews up to `max_num` in length as small as `min_size`
-        y = self.abi_meta.instrument_meta.y
-        x = self.abi_meta.instrument_meta.x
-
-        powers = [2]  # make at least 1 overview at half size
-        for i in range(2, max_num + 1):
-            power = 2**i
-            if power <= max(y, x) / min_size:
-                powers.append(power)
-
-        return powers
-
     def resample2abi(
         self,
         latlon_array,
@@ -188,8 +178,8 @@ class ABIProjection:
             srcSRS=self.latlon_srs,
             dstSRS=self.abi_srs,
             outputBounds=self.abi_bounds,
-            width=self.abi_meta.instrument_meta.x,
-            height=self.abi_meta.instrument_meta.y,
+            width=self.abi_data.dimensions["x"].size,
+            height=self.abi_data.dimensions["y"].size,
             format=self._intermediate_format,
             resampleAlg=interpolation.lower(),
             creationOptions=self._intermediate_gdal_options,
@@ -235,28 +225,21 @@ class ABIProjection:
         self,
         abi_array,
         cog_filepath,
-        interpolation="lanczos",
-        gdal_compression_algo="lzw",
-        gdal_compression_predictor=2,
+        interpolation="LANCZOS",
+        gdal_compression_algo="LZW",
     ):
         resampled = self.resample2latlon(
             abi_array, interpolation=interpolation, convert_np=False
         )
 
-        # save COG-compliant GeoTIFF
-        # https://www.cogeo.org/providers-guide.html
-        # TODO: use new COG driver in GDAL 3.1
-        final_gdal_options = self._final_gdal_options + [
-            "COPY_SRC_OVERVIEWS=YES",
-            "TILED=YES",
+        final_gdal_options = [
             f"COMPRESS={gdal_compression_algo}",
-            f"PREDICTOR={gdal_compression_predictor}",
             f"NUM_THREADS={NUM_CPUS}",
+            f"PREDICTOR=YES",
+            f"OVERVIEW_RESAMPLING={interpolation}",
         ]
-        gdal.SetConfigOption("COMPRESS_OVERVIEW", gdal_compression_algo.upper())
-        gdal.SetConfigOption("PREDICTOR_OVERVIEW", str(gdal_compression_predictor))
-        resampled.BuildOverviews(interpolation, self._cog_overviews())
-        drv = gdal.GetDriverByName("GTiff")
+
+        drv = gdal.GetDriverByName("COG")
         drv.CreateCopy(str(cog_filepath), resampled, options=final_gdal_options)
 
         return cog_filepath

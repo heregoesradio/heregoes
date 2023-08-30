@@ -27,18 +27,25 @@ import cartopy.feature as cf
 import matplotlib
 
 matplotlib.use("Agg")
-import traceback
+import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import netCDF4
 import numpy as np
 
-from heregoes import IREMIS_DIR, SCRIPT_PATH, logger, projection, util
+from heregoes import exceptions, projection
+from heregoes.util import linear_interp, ncinterface
+
+SCRIPT_PATH = Path(__file__).parent.resolve()
+
+IREMIS_DIR = os.getenv("HEREGOES_ENV_IREMIS_DIR")
+if IREMIS_DIR:
+    IREMIS_DIR = Path(IREMIS_DIR)
 
 
 class AncillaryDataset:
-    """This is the base class for ancillary datasets, and can be used directly to save and load compressed npz NumPy objects"""
+    """This is the base class for ancillary datasets for use with ABI, and can be used directly to save and load compressed npz NumPy objects"""
 
     def __init__(self):
         self.data = {}
@@ -50,10 +57,10 @@ class AncillaryDataset:
 
         file_name = "_".join(
             (
-                self.abi_meta.platform_ID,
+                self.abi_data.platform_ID,
                 "abi",
-                self.abi_meta.instrument_meta.scene_id_safe,
-                str(int(self.abi_meta.instrument_meta.km)) + "km",
+                self.abi_data.scene_id_safe,
+                str(int(self.abi_data.resolution_km)) + "km",
                 self.dataset_name,
             )
         ).lower()
@@ -62,22 +69,24 @@ class AncillaryDataset:
         try:
             np.savez_compressed(file_path, **self.data)
 
-        except:
-            logger.critical("Could not save dataset at %s", file_path)
-            print(traceback.format_exc())
-
-            return
+        except Exception as e:
+            raise exceptions.HereGOESIOWriteException(
+                caller=f"{__name__}.{self.__class__.__name__}",
+                filepath=file_path,
+                exception=e,
+            )
 
     def load(self, npz_path):
         npz_path = Path(npz_path)
         try:
             npz = np.load(npz_path)
 
-        except:
-            logger.critical("Could not load dataset at %s", npz_path)
-            print(traceback.format_exc())
-
-            return
+        except Exception as e:
+            raise exceptions.HereGOESIOReadException(
+                caller=f"{__name__}.{self.__class__.__name__}",
+                filepath=npz_path,
+                exception=e,
+            )
 
         self.dataset_name = npz_path.name
         for key in npz.keys():
@@ -95,25 +104,25 @@ class IREMIS(AncillaryDataset):
         - ABI channel 14 (11.2 μm): `data['c14_land_emissivity']`
 
     Arguments:
-        - `abi_meta`: The NCMeta object formed on a GOES-R ABI L1b Radiance netCDF file
+        - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
         - `iremis_dir`: Location of IREMIS netCDF files. Defaults to the directory set by the HEREGOES_ENV_IREMIS_DIR environmental variable
     """
 
-    def __init__(self, abi_meta, iremis_dir=IREMIS_DIR):
+    def __init__(self, abi_data, iremis_dir=IREMIS_DIR):
         super(IREMIS, self).__init__()
 
-        self.abi_meta = abi_meta
-        month = self.abi_meta.time_coverage_start.month
+        self.abi_data = abi_data
+        month = self.abi_data.time_coverage_start.month
         self.dataset_name = "iremis_month" + str(month).zfill(2)
 
         try:
             iremis_dir = Path(iremis_dir)
-
-        except:
-            logger.critical("iremis_dir is not set or is not a real path")
-            print(traceback.format_exc())
-
-            return
+        except Exception as e:
+            raise exceptions.HereGOESIOReadException(
+                caller=f"{__name__}.{self.__class__.__name__}",
+                filepath=iremis_dir,
+                exception=e,
+            )
 
         iremis_locations = iremis_dir.joinpath("global_emis_inf10_location.nc")
         iremis_months = [
@@ -133,29 +142,29 @@ class IREMIS(AncillaryDataset):
         self.iremis_nc = iremis_dir.joinpath(iremis_months[month - 1])
 
         if not self.iremis_nc.exists():
-            logger.critical("Could not locate IREMIS netCDF: %s", self.iremis_nc)
-            print(traceback.format_exc())
+            raise exceptions.HereGOESIOReadException(
+                caller=f"{__name__}.{self.__class__.__name__}", filepath=self.iremis_nc
+            )
 
-            return
+        iremis = ncinterface.NCInterface(self.iremis_nc)
 
-        with netCDF4.Dataset(self.iremis_nc, "r") as loaded_iremis_nc:
-            # UW Baseline Fit IREMIS may be linearly interpolated for moderate resolution spectral emissivity: https://doi.org/10.1175/2007JAMC1590.1
-            self.data["c07_land_emissivity"] = util.linear_interp(
-                3.7,
-                4.3,
-                loaded_iremis_nc["emis1"][:],
-                loaded_iremis_nc["emis2"][:],
-                3.9,
-            ).astype(np.float32)
-            self.data["c14_land_emissivity"] = util.linear_interp(
-                10.8,
-                12.1,
-                loaded_iremis_nc["emis8"][:],
-                loaded_iremis_nc["emis9"][:],
-                11.2,
-            ).astype(np.float32)
+        # UW Baseline Fit IREMIS may be linearly interpolated for moderate resolution spectral emissivity: https://doi.org/10.1175/2007JAMC1590.1
+        self.data["c07_land_emissivity"] = linear_interp(
+            3.7,
+            4.3,
+            iremis["emis1"][:],
+            iremis["emis2"][:],
+            3.9,
+        ).astype(np.float32)
+        self.data["c14_land_emissivity"] = linear_interp(
+            10.8,
+            12.1,
+            iremis["emis8"][:],
+            iremis["emis9"][:],
+            11.2,
+        ).astype(np.float32)
 
-        # ocean pixels have a negative fill value, we set them to have an emissivity of 1.0
+        # ocean pixels have a negative value, we set them to have an emissivity of 1.0
         self.data["c07_land_emissivity"][self.data["c07_land_emissivity"] < 0.0] = 1.0
         self.data["c14_land_emissivity"][self.data["c14_land_emissivity"] < 0.0] = 1.0
 
@@ -173,7 +182,7 @@ class IREMIS(AncillaryDataset):
             iremis_lr_lat = iremis_locations_nc["lat"][-1, -1]
             iremis_lr_lon = iremis_locations_nc["lon"][-1, -1]
 
-        abi_projection = projection.ABIProjection(self.abi_meta)
+        abi_projection = projection.ABIProjection(self.abi_data)
         self.data["c07_land_emissivity"] = abi_projection.resample2abi(
             self.data["c07_land_emissivity"],
             latlon_bounds=[iremis_ul_lon, iremis_ul_lat, iremis_lr_lon, iremis_lr_lat],
@@ -195,65 +204,71 @@ class WaterMask(AncillaryDataset):
     Provides a boolean land/water mask in `data['water_mask']` where water is `False` and land is `True`.
 
     Arguments:
-        - `abi_meta`: The NCMeta object formed on a GOES-R ABI L1b Radiance netCDF file
+        - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
         - `gshhs_scale`: 'auto', 'coarse', 'low', 'intermediate', 'high, or 'full' (https://scitools.org.uk/cartopy/docs/latest/reference/generated/cartopy.feature.GSHHSFeature.html)
         - `rivers`: Default `False`
     """
 
-    def __init__(self, abi_meta, gshhs_scale="intermediate", rivers=False):
+    def __init__(self, abi_data, gshhs_scale="intermediate", rivers=False):
         super(WaterMask, self).__init__()
 
-        self.abi_meta = abi_meta
+        self.abi_data = abi_data
         self.dataset_name = "gshhs_" + gshhs_scale
 
         # https://scitools.org.uk/cartopy/docs/latest/crs/index.html#cartopy.crs.Globe
         goes_globe = ccrs.Globe(
             datum=None,
             ellipse="GRS80",
-            semimajor_axis=self.abi_meta.instrument_meta.semi_major_axis,
-            semiminor_axis=self.abi_meta.instrument_meta.semi_minor_axis,
+            semimajor_axis=self.abi_data["goes_imager_projection"].semi_major_axis,
+            semiminor_axis=self.abi_data["goes_imager_projection"].semi_minor_axis,
             flattening=None,
-            inverse_flattening=self.abi_meta.instrument_meta.inverse_flattening,
+            inverse_flattening=self.abi_data[
+                "goes_imager_projection"
+            ].inverse_flattening,
             towgs84=None,
             nadgrids=None,
         )
         # https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#goes
         goes_projection = ccrs.Geostationary(
-            central_longitude=self.abi_meta.instrument_meta.longitude_of_projection_origin,
-            satellite_height=self.abi_meta.instrument_meta.perspective_point_height,
+            central_longitude=self.abi_data[
+                "goes_imager_projection"
+            ].longitude_of_projection_origin,
+            satellite_height=self.abi_data[
+                "goes_imager_projection"
+            ].perspective_point_height,
             false_easting=0,
             false_northing=0,
             globe=goes_globe,
-            sweep_axis=self.abi_meta.instrument_meta.sweep_angle_axis,
+            sweep_axis=self.abi_data["goes_imager_projection"].sweep_angle_axis,
         )
 
         dpi = 1000
         plt.figure(
             figsize=(
-                self.abi_meta.instrument_meta.x / dpi,
-                self.abi_meta.instrument_meta.y / dpi,
+                self.abi_data.dimensions["x"].size / dpi,
+                self.abi_data.dimensions["y"].size / dpi,
             ),
             dpi=dpi,
         )
         ax = plt.axes(projection=goes_projection)
 
         # cartopy errors on extents the size of the ABI Full Disk
-        if self.abi_meta.instrument_meta.scene_id != "Full Disk":
+        if self.abi_data.scene_id != "Full Disk":
             ul_x = (
-                self.abi_meta.instrument_meta.x_image_bounds[0]
-                * self.abi_meta.instrument_meta.perspective_point_height
+                self.abi_data["x_image_bounds"][0]
+                * self.abi_data["goes_imager_projection"].perspective_point_height
             )
             ul_y = (
-                self.abi_meta.instrument_meta.y_image_bounds[0]
-                * self.abi_meta.instrument_meta.perspective_point_height
+                self.abi_data["y_image_bounds"][0]
+                * self.abi_data["goes_imager_projection"].perspective_point_height
             )
             lr_x = (
-                self.abi_meta.instrument_meta.x_image_bounds[1]
-                * self.abi_meta.instrument_meta.perspective_point_height
+                self.abi_data["x_image_bounds"][1]
+                * self.abi_data["goes_imager_projection"].perspective_point_height
             )
             lr_y = (
-                self.abi_meta.instrument_meta.y_image_bounds[1]
-                * self.abi_meta.instrument_meta.perspective_point_height
+                self.abi_data["y_image_bounds"][1]
+                * self.abi_data["goes_imager_projection"].perspective_point_height
             )
             ax.set_extent([ul_x, lr_x, ul_y, lr_y], crs=goes_projection)
 
@@ -323,8 +338,8 @@ class WaterMask(AncillaryDataset):
         self.data["water_mask"] = np.reshape(
             np.frombuffer(io_buf.getvalue(), dtype=np.uint8),
             newshape=(
-                self.abi_meta.instrument_meta.y,
-                self.abi_meta.instrument_meta.x,
+                self.abi_data.dimensions["y"].size,
+                self.abi_data.dimensions["x"].size,
                 -1,
             ),
         )

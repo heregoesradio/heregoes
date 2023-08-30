@@ -23,12 +23,12 @@ import numpy as np
 from astropy import coordinates
 from astropy.time import Time
 
-from heregoes import heregoes_njit, orbital, util
+from heregoes.util import nearest_2d, njit, orbital, rad2deg
 
 
 class ABINavigation:
     """
-    This is a class for GOES-R ABI navigation routines using an NCMeta object to access netCDF metadata.
+    This is a class for GOES-R ABI navigation routines using an ABIObject to access netCDF data.
     The routines may be constrained to a single pixel by `index`, or to a single location by providing `lat_deg` and `lon_deg` (degrees).
     All calculations return 32-bit floating point NumPy arrays which should be accurate enough for most applications at this scale.
 
@@ -43,7 +43,7 @@ class ABINavigation:
         - The effective projected area of the pixel in square meters (`area_m`)
 
     Arguments:
-        - `abi_meta`: The NCMeta object formed on a GOES-R ABI L1b Radiance netCDF file
+        - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
         - `hae_m`: The Height Above Ellipsoid (HAE) in meters of the ABI array to correct for terrain height. Default 0.0 (no correction)
         - `time`: The time for which the Sun position is valid. The product midpoint time is used if not provided
         - `precise_sun`: Whether to calculate solar position using Equation of Time with Pyorbital (`False`, default) or real ephemeris with Astropy (`True`)
@@ -52,7 +52,7 @@ class ABINavigation:
 
     def __init__(
         self,
-        abi_meta,
+        abi_data,
         index=slice(None, None),
         lat_deg=None,
         lon_deg=None,
@@ -61,8 +61,7 @@ class ABINavigation:
         precise_sun=False,
         degrees=False,
     ):
-
-        self.abi_meta = abi_meta
+        self.abi_data = abi_data
         self.index = index
         self.hae_m = np.atleast_1d(hae_m).astype(np.float32)
         self.time = time
@@ -77,50 +76,57 @@ class ABINavigation:
 
         if self.index == slice(None, None):
             self.x_rad, self.y_rad = np.meshgrid(
-                self.abi_meta.instrument_meta.projection_x_coordinate,
-                self.abi_meta.instrument_meta.projection_y_coordinate,
+                self.abi_data["x"][:],
+                self.abi_data["y"][:],
             )
 
         else:
-            self.x_rad = np.atleast_1d(
-                self.abi_meta.instrument_meta.projection_x_coordinate[self.index[1]]
-            )
-            self.y_rad = np.atleast_1d(
-                self.abi_meta.instrument_meta.projection_y_coordinate[self.index[0]]
-            )
+            self.x_rad = np.atleast_1d(self.abi_data["x"][self.index[1]])
+            self.y_rad = np.atleast_1d(self.abi_data["y"][self.index[0]])
 
         if lat_deg is None or lon_deg is None:
             self.lat_deg, self.lon_deg = self.navigate(
                 self.y_rad,
                 self.x_rad,
-                lon_origin=self.abi_meta.instrument_meta.longitude_of_projection_origin,
-                r_eq=self.abi_meta.instrument_meta.semi_major_axis,
-                r_pol=self.abi_meta.instrument_meta.semi_minor_axis,
-                sat_height=self.abi_meta.instrument_meta.perspective_point_height,
+                lon_origin=self.abi_data[
+                    "goes_imager_projection"
+                ].longitude_of_projection_origin,
+                r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
+                r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
+                sat_height=self.abi_data[
+                    "goes_imager_projection"
+                ].perspective_point_height,
             )
 
             if self.hae_m.shape != self.lat_deg.shape:
                 self.hae_m = np.full(self.lat_deg.shape, self.hae_m, dtype=np.float32)
 
             # correct for terrain parallax if HAE is provided
-            if (self.hae_m != 0.0).any() == True:
-
+            if (self.hae_m != 0.0).any():
                 self.y_rad, self.x_rad = self.reverse_navigate(
                     self.lat_deg,
                     self.lon_deg,
-                    lon_origin=self.abi_meta.instrument_meta.longitude_of_projection_origin,
-                    r_eq=self.abi_meta.instrument_meta.semi_major_axis,
-                    r_pol=self.abi_meta.instrument_meta.semi_minor_axis,
-                    sat_height=self.abi_meta.instrument_meta.perspective_point_height,
+                    lon_origin=self.abi_data[
+                        "goes_imager_projection"
+                    ].longitude_of_projection_origin,
+                    r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
+                    r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
+                    sat_height=self.abi_data[
+                        "goes_imager_projection"
+                    ].perspective_point_height,
                     feature_height=self.hae_m,
                 )
                 self.lat_deg, self.lon_deg = self.navigate(
                     self.y_rad,
                     self.x_rad,
-                    lon_origin=self.abi_meta.instrument_meta.longitude_of_projection_origin,
-                    r_eq=self.abi_meta.instrument_meta.semi_major_axis,
-                    r_pol=self.abi_meta.instrument_meta.semi_minor_axis,
-                    sat_height=self.abi_meta.instrument_meta.perspective_point_height,
+                    lon_origin=self.abi_data[
+                        "goes_imager_projection"
+                    ].longitude_of_projection_origin,
+                    r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
+                    r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
+                    sat_height=self.abi_data[
+                        "goes_imager_projection"
+                    ].perspective_point_height,
                 )
 
         else:
@@ -130,20 +136,24 @@ class ABINavigation:
             derived_y_rad, derived_x_rad = self.reverse_navigate(
                 self.lat_deg,
                 self.lon_deg,
-                lon_origin=self.abi_meta.instrument_meta.longitude_of_projection_origin,
-                r_eq=self.abi_meta.instrument_meta.semi_major_axis,
-                r_pol=self.abi_meta.instrument_meta.semi_minor_axis,
-                sat_height=self.abi_meta.instrument_meta.perspective_point_height,
+                lon_origin=self.abi_data[
+                    "goes_imager_projection"
+                ].longitude_of_projection_origin,
+                r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
+                r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
+                sat_height=self.abi_data[
+                    "goes_imager_projection"
+                ].perspective_point_height,
                 feature_height=self.hae_m,
             )
-            self.index = util.nearest_2d(
+            self.index = nearest_2d(
                 self.y_rad, self.x_rad, derived_y_rad, derived_x_rad
             )
             self.y_rad = derived_y_rad
             self.x_rad = derived_x_rad
 
         if self.time is None:
-            self.time = self.abi_meta.instrument_meta.midpoint_time
+            self.time = self.abi_data.midpoint_time
 
     @property
     def sat_za(self):
@@ -195,9 +205,9 @@ class ABINavigation:
             self._area_m = self.pixel_area(
                 self.y_rad,
                 self.x_rad,
-                self.abi_meta.instrument_meta.semi_major_axis,
-                self.abi_meta.instrument_meta.perspective_point_height,
-                self.abi_meta.instrument_meta.ifov,
+                self.abi_data["goes_imager_projection"].semi_major_axis,
+                self.abi_data["goes_imager_projection"].perspective_point_height,
+                self.abi_data.resolution_ifov,
             )
 
         return self._area_m
@@ -208,15 +218,9 @@ class ABINavigation:
 
     def _calc_sat(self):
         self._sat_az, self._sat_za = orbital.get_observer_look(
-            sat_lon=np.atleast_1d(
-                self.abi_meta.instrument_meta.nominal_satellite_subpoint_lon
-            ),
-            sat_lat=np.atleast_1d(
-                self.abi_meta.instrument_meta.nominal_satellite_subpoint_lat
-            ),
-            sat_alt=np.atleast_1d(
-                self.abi_meta.instrument_meta.nominal_satellite_height
-            ),
+            sat_lon=np.atleast_1d(self.abi_data["nominal_satellite_subpoint_lon"][:]),
+            sat_lat=np.atleast_1d(self.abi_data["nominal_satellite_subpoint_lat"][:]),
+            sat_alt=np.atleast_1d(self.abi_data["nominal_satellite_height"][:]),
             jdays2000=orbital.jdays2000(self.time),
             lon=self.lon_deg,
             lat=self.lat_deg,
@@ -229,8 +233,8 @@ class ABINavigation:
         self._sat_za = orbital.el2za(self._sat_za)
 
         if self.degrees:
-            self._sat_az = util.rad2deg(self._sat_az)
-            self._sat_za = util.rad2deg(self._sat_za)
+            self._sat_az = rad2deg(self._sat_az)
+            self._sat_za = rad2deg(self._sat_za)
 
     def _calc_sun(self):
         if self.precise_sun:
@@ -259,11 +263,11 @@ class ABINavigation:
         self._sun_za = orbital.el2za(self._sun_za)
 
         if self.degrees:
-            self._sun_az = util.rad2deg(self._sun_az)
-            self._sun_za = util.rad2deg(self._sun_za)
+            self._sun_az = rad2deg(self._sun_az)
+            self._sun_za = rad2deg(self._sun_za)
 
     @staticmethod
-    @heregoes_njit
+    @njit.heregoes_njit
     def navigate(y_rad, x_rad, lon_origin, r_eq, r_pol, sat_height):
         # navigates instrument scanning angle to latitude and longitude
         # following 7.1.2.8.1 in the PUG Volume 4: https://www.goes-r.gov/users/docs/PUG-GRB-vol4.pdf
@@ -302,7 +306,7 @@ class ABINavigation:
         )
 
     @staticmethod
-    @heregoes_njit
+    @njit.heregoes_njit
     def reverse_navigate(
         lat_deg, lon_deg, lon_origin, r_eq, r_pol, sat_height, feature_height
     ):
@@ -338,7 +342,7 @@ class ABINavigation:
         )
 
     @staticmethod
-    @heregoes_njit
+    @njit.heregoes_njit
     def pixel_area(y_rad, x_rad, semi_major_axis, perspective_point_height, ifov):
         # returns the effective area of a pixel in meters
 

@@ -6,8 +6,8 @@ test/input/
 test/output/
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
-__numba_cache__/
+*/__pycache__/
+*/__numba_cache__/
 *.py[cod]
 *$py.class
 

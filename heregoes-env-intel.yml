@@ -1,0 +1,26 @@
+name: heregoes-env
+channels:
+  - conda-forge  
+  - intel
+  - numba
+  - defaults
+dependencies:
+  - astropy
+  - black
+  - conda-forge::cartopy==0.22.0
+  - gdal==3.7.1
+  - intel::icc_rt
+  - isort
+  - netcdf4
+  - numba::numba==0.57.1
+  - defaults::numpy==1.24.3
+  - conda-forge::opencv
+  - pip
+  - pyproj==3.6.0
+  - pyspectral
+  - pytest
+  - python=3.11
+  - scipy
+  - threadpoolctl
+  - blas=*=*mkl
+  - libblas=*=*mkl
