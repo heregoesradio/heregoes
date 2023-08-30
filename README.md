@@ -2,6 +2,7 @@
 
 <p>
 <a href="https://github.com/heregoesradio/heregoes/blob/main/LICENSE.txt"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/heregoesradio/heregoes"></a>
+<a href="https://zenodo.org/badge/latestdoi/469245509"><img src="https://zenodo.org/badge/469245509.svg"></a>
 <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
