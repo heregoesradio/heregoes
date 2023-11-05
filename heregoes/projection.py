@@ -56,10 +56,10 @@ class ABIProjection:
         lon_0 = self.abi_data["goes_imager_projection"].longitude_of_projection_origin
         sweep = self.abi_data["goes_imager_projection"].sweep_angle_axis
 
-        ul_x = self.abi_data["x_image_bounds"][0] * h
-        ul_y = self.abi_data["y_image_bounds"][0] * h
-        lr_x = self.abi_data["x_image_bounds"][1] * h
-        lr_y = self.abi_data["y_image_bounds"][1] * h
+        ul_x = (self.abi_data["x_image_bounds"][0] * h).item()
+        ul_y = (self.abi_data["y_image_bounds"][0] * h).item()
+        lr_x = (self.abi_data["x_image_bounds"][1] * h).item()
+        lr_y = (self.abi_data["y_image_bounds"][1] * h).item()
         self.abi_bounds = [ul_x, ul_y, lr_x, lr_y]
 
         self._intermediate_format = "GTiff"

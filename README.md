@@ -79,7 +79,7 @@ With an L1b SUVI netCDF file `suvi_nc`, view the exposure time in seconds:
 ```python
 from heregoes import load
 suvi_data = load(suvi_nc)
-print(suvi_data["CMD_EXP"][:])
+print(suvi_data["CMD_EXP"][...])
 ```
 
 Which returns:

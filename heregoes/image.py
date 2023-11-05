@@ -85,6 +85,7 @@ class ABIImage(Image):
         abi_nc,
         index=slice(None, None),
         gamma=1.0,
+        black_space=False,
     ):
         """
         Creates Cloud Moisture Imagery (CMI) following the CMIP ATBD: https://www.star.nesdis.noaa.gov/goesr/docs/ATBD/Imagery.pdf
@@ -102,16 +103,21 @@ class ABIImage(Image):
             - `abi_nc`: String or Path object pointing to a GOES-R ABI L1b Radiance netCDF file
             - `index`: Optionally process an ABI image for a single array index or slice
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
+            - `black_space`: Optionally overwrites the masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `True`
         """
 
-        super(ABIImage, self).__init__()
+        super().__init__()
         self.gamma = gamma
+        self.black_space = black_space
+
         self._cmi = None
 
         self.abi_data = load(abi_nc)
+
         self.rad = self.abi_data["Rad"][index]
         self.dqf = self.abi_data["DQF"][index]
-        self.quality = self.abi_data["Rad"].quality
+        self.mask = self.abi_data["Rad"].mask
+        self.quality = self.abi_data["Rad"].pct_unmasked
 
         self.rad_range = np.array(
             self.abi_data["Rad"].valid_range * self.abi_data["Rad"].scale_factor
@@ -132,20 +138,20 @@ class ABIImage(Image):
     @property
     def cmi(self):
         if self._cmi is None:
-            if 1 <= self.abi_data["band_id"][:] <= 6:
+            if 1 <= self.abi_data["band_id"][...] <= 6:
                 self._cmi = abi.rad2rf(
                     self.rad,
-                    self.abi_data["earth_sun_distance_anomaly_in_AU"][:].item(),
-                    self.abi_data["esun"][:].item(),
+                    self.abi_data["earth_sun_distance_anomaly_in_AU"][...].item(),
+                    self.abi_data["esun"][...].item(),
                 )
 
-            elif 7 <= self.abi_data["band_id"][:] <= 16:
+            elif 7 <= self.abi_data["band_id"][...] <= 16:
                 self._cmi = abi.rad2bt(
                     self.rad,
-                    self.abi_data["planck_fk1"][:].item(),
-                    self.abi_data["planck_fk2"][:].item(),
-                    self.abi_data["planck_bc1"][:].item(),
-                    self.abi_data["planck_bc2"][:].item(),
+                    self.abi_data["planck_fk1"][...].item(),
+                    self.abi_data["planck_fk2"][...].item(),
+                    self.abi_data["planck_bc1"][...].item(),
+                    self.abi_data["planck_bc2"][...].item(),
                 )
 
         return self._cmi
@@ -157,19 +163,22 @@ class ABIImage(Image):
     @property
     def bv(self):
         if self._bv is None:
-            if 1 <= self.abi_data["band_id"][:] <= 6:
+            if 1 <= self.abi_data["band_id"][...] <= 6:
                 # calculate the range of possible reflectance factors from the provided valid range of radiance, and use it to normalize before the gamma correction
                 self.rf_min, self.rf_max = (
                     self.rad_range
                     * np.pi
-                    * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][:])
-                ) / self.abi_data["esun"][:]
+                    * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][...])
+                ) / self.abi_data["esun"][...]
                 self._bv = abi.rf2bv(
                     self.cmi, min=self.rf_min, max=self.rf_max, gamma=self.gamma
                 )
 
-            elif 7 <= self.abi_data["band_id"][:] <= 16:
+            elif 7 <= self.abi_data["band_id"][...] <= 16:
                 self._bv = abi.bt2bv(self.cmi)
+
+        if self.black_space:
+            self._bv[self.mask] = 0
 
         return self._bv
 
@@ -190,6 +199,7 @@ class ABINaturalRGB(Image):
         upscale=False,
         upscale_algo=cv2.INTER_CUBIC,
         gamma=1.0,
+        black_space=False,
     ):
         """
         Creates the "natural" color RGB for ABI following https://doi.org/10.1029/2018EA000379 in BGR order
@@ -200,13 +210,14 @@ class ABINaturalRGB(Image):
             - `upscale`: Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
             - `upscale_algo`: The OpenCV interpolation algorithm used for upscaling green and blue images. See https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121. Default `cv2.INTER_CUBIC`
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
+            - `black_space`: Optionally overwrites the masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `True`
         """
 
-        super(ABINaturalRGB, self).__init__()
+        super().__init__()
 
-        red_image = ABIImage(red_nc, gamma=gamma)
-        green_image = ABIImage(green_nc, gamma=gamma)
-        blue_image = ABIImage(blue_nc, gamma=gamma)
+        red_image = ABIImage(red_nc, gamma=gamma, black_space=black_space)
+        green_image = ABIImage(green_nc, gamma=gamma, black_space=black_space)
+        blue_image = ABIImage(blue_nc, gamma=gamma, black_space=black_space)
 
         if upscale:
             # upscale green and blue to the size of red
@@ -216,19 +227,36 @@ class ABINaturalRGB(Image):
                 interpolation=upscale_algo,
             )
             green_image.dqf = cv2.resize(
-                green_image.bv,
+                green_image.dqf,
                 (red_image.dqf.shape[1], red_image.dqf.shape[0]),
                 interpolation=cv2.INTER_NEAREST,
             )
+            green_image.mask = (
+                cv2.resize(
+                    green_image.mask.astype(np.uint8),
+                    (red_image.mask.shape[1], red_image.mask.shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                )
+                == 1
+            )
+
             blue_image.bv = cv2.resize(
                 blue_image.bv,
                 (red_image.bv.shape[1], red_image.bv.shape[0]),
                 interpolation=upscale_algo,
             )
             blue_image.dqf = cv2.resize(
-                blue_image.bv,
+                blue_image.dqf,
                 (red_image.dqf.shape[1], red_image.dqf.shape[0]),
                 interpolation=cv2.INTER_NEAREST,
+            )
+            blue_image.mask = (
+                cv2.resize(
+                    blue_image.mask.astype(np.uint8),
+                    (red_image.mask.shape[1], red_image.mask.shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                )
+                == 1
             )
 
         else:
@@ -239,9 +267,17 @@ class ABINaturalRGB(Image):
                 interpolation=cv2.INTER_AREA,
             )
             red_image.dqf = cv2.resize(
-                red_image.bv,
+                red_image.dqf,
                 (green_image.dqf.shape[1], green_image.dqf.shape[0]),
                 interpolation=cv2.INTER_NEAREST,
+            )
+            red_image.mask = (
+                cv2.resize(
+                    red_image.mask.astype(np.uint8),
+                    (green_image.mask.shape[1], green_image.mask.shape[0]),
+                    interpolation=cv2.INTER_NEAREST,
+                )
+                == 1
             )
 
         green_image.bv = (
@@ -257,6 +293,9 @@ class ABINaturalRGB(Image):
             sum([red_image.quality, green_image.quality, blue_image.quality]) / 3
         )
         self.dqf = np.stack([blue_image.dqf, green_image.dqf, red_image.dqf], axis=2)
+        self.mask = np.stack(
+            [blue_image.mask, green_image.mask, red_image.mask], axis=2
+        )
 
         if upscale:
             self.abi_data = red_image.abi_data
@@ -264,7 +303,7 @@ class ABINaturalRGB(Image):
         else:
             self.abi_data = green_image.abi_data
 
-        self.abi_data["band_id"][:] = np.atleast_1d(0)
+        self.abi_data["band_id"][...] = np.atleast_1d(0)
         self.abi_data.band_id_safe = "Color"
 
         self.abi_data.dataset_name = "RGB from " + ", ".join(
@@ -303,20 +342,21 @@ class SUVIImage(Image):
             - `dqf_correction`: Whether to interpolate over bad pixels marked by DQF. Default `True`
         """
 
-        super(SUVIImage, self).__init__()
+        super().__init__()
 
         self.suvi_data = load(suvi_nc)
 
-        if self.suvi_data["CMD_EXP"][:] != 1.0:
+        if self.suvi_data["CMD_EXP"][...] != 1.0:
             logger.warning(
-                "Short SUVI exposure detected: SUVI exposures shorter than 1 second are not officially supported."
+                "Short SUVI exposure detected: SUVI exposures shorter than 1 second are not officially supported.",
+                extra={"caller": f"{__name__}.{self.__class__.__name__}"},
             )
 
-        self.rad = self.suvi_data["RAD"][:]
-        self.dqf = self.suvi_data["DQF"][:]
-        self.quality = self.suvi_data["RAD"].quality
-        x_offset = 640 - self.suvi_data["CRPIX1"][:]
-        y_offset = 640 - self.suvi_data["CRPIX2"][:]
+        self.rad = self.suvi_data["RAD"][...]
+        self.dqf = self.suvi_data["DQF"][...]
+        self.quality = self.suvi_data["RAD"].pct_unmasked
+        x_offset = 640 - self.suvi_data["CRPIX1"][...]
+        y_offset = 640 - self.suvi_data["CRPIX2"][...]
 
         self.default_filename = "_".join(
             (

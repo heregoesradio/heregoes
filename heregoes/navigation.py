@@ -76,8 +76,8 @@ class ABINavigation:
 
         if self.index == slice(None, None):
             self.x_rad, self.y_rad = np.meshgrid(
-                self.abi_data["x"][:],
-                self.abi_data["y"][:],
+                self.abi_data["x"][...],
+                self.abi_data["y"][...],
             )
 
         else:
@@ -218,9 +218,9 @@ class ABINavigation:
 
     def _calc_sat(self):
         self._sat_az, self._sat_za = orbital.get_observer_look(
-            sat_lon=np.atleast_1d(self.abi_data["nominal_satellite_subpoint_lon"][:]),
-            sat_lat=np.atleast_1d(self.abi_data["nominal_satellite_subpoint_lat"][:]),
-            sat_alt=np.atleast_1d(self.abi_data["nominal_satellite_height"][:]),
+            sat_lon=np.atleast_1d(self.abi_data["nominal_satellite_subpoint_lon"][...]),
+            sat_lat=np.atleast_1d(self.abi_data["nominal_satellite_subpoint_lat"][...]),
+            sat_alt=np.atleast_1d(self.abi_data["nominal_satellite_height"][...]),
             jdays2000=orbital.jdays2000(self.time),
             lon=self.lon_deg,
             lat=self.lat_deg,

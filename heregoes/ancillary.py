@@ -109,7 +109,7 @@ class IREMIS(AncillaryDataset):
     """
 
     def __init__(self, abi_data, iremis_dir=IREMIS_DIR):
-        super(IREMIS, self).__init__()
+        super().__init__()
 
         self.abi_data = abi_data
         month = self.abi_data.time_coverage_start.month
@@ -152,15 +152,15 @@ class IREMIS(AncillaryDataset):
         self.data["c07_land_emissivity"] = linear_interp(
             3.7,
             4.3,
-            iremis["emis1"][:],
-            iremis["emis2"][:],
+            iremis["emis1"][...],
+            iremis["emis2"][...],
             3.9,
         ).astype(np.float32)
         self.data["c14_land_emissivity"] = linear_interp(
             10.8,
             12.1,
-            iremis["emis8"][:],
-            iremis["emis9"][:],
+            iremis["emis8"][...],
+            iremis["emis9"][...],
             11.2,
         ).astype(np.float32)
 
@@ -210,7 +210,7 @@ class WaterMask(AncillaryDataset):
     """
 
     def __init__(self, abi_data, gshhs_scale="intermediate", rivers=False):
-        super(WaterMask, self).__init__()
+        super().__init__()
 
         self.abi_data = abi_data
         self.dataset_name = "gshhs_" + gshhs_scale

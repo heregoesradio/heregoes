@@ -94,12 +94,12 @@ class ABIObject(GOESRObject):
             self.resolution_ifov = 56.0e-6
             self.resolution_km = 2.0
 
-        self.band_id_safe = "C" + str(self["band_id"][:].item()).zfill(2)
+        self.band_id_safe = "C" + str(self["band_id"][...].item()).zfill(2)
 
-        self.midpoint_time = self.epoch2timestamp(seconds=float(self["t"][:].item()))
+        self.midpoint_time = self.epoch2timestamp(seconds=float(self["t"][...].item()))
 
         self.instrument_coefficients = coefficients.ABICoeff(
-            self.platform_ID, self["band_id"][:].item()
+            self.platform_ID, self["band_id"][...].item()
         )
 
 
@@ -111,11 +111,11 @@ class SUVIObject(GOESRObject):
 
         # Wavelength for SUVI 304 is masked in netCDF
         self["WAVELNTH"].set_fill_value(0)
-        self.wavelength_safe = str(int(self["WAVELNTH"][:].item())).zfill(3)
+        self.wavelength_safe = str(int(self["WAVELNTH"][...].item())).zfill(3)
         if self.wavelength_safe == "000":
             self.wavelength_safe = "304"
-            self["WAVELNTH"][:] = 304
+            self["WAVELNTH"][...] = 304
 
         self.instrument_coefficients = coefficients.SUVICoeff(
-            self.platform_ID, self["WAVELNTH"][:].item()
+            self.platform_ID, self["WAVELNTH"][...].item()
         )
