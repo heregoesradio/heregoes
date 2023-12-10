@@ -22,6 +22,8 @@
 
 import datetime
 
+import numpy as np
+
 from heregoes.goesr import coefficients
 from heregoes.util.ncinterface import NCInterface
 
@@ -85,14 +87,14 @@ class ABIObject(GOESRObject):
             self.scene_id_safe = "CONUS"
 
         if self["Rad"].resolution == "y: 0.000014 rad x: 0.000014 rad":
-            self.resolution_ifov = 14.0e-6
-            self.resolution_km = 0.5
+            self.resolution_ifov = np.array(14.0e-6, dtype=np.float32)
+            self.resolution_km = np.array(0.5, dtype=np.float32)
         elif self["Rad"].resolution == "y: 0.000028 rad x: 0.000028 rad":
-            self.resolution_ifov = 28.0e-6
-            self.resolution_km = 1.0
+            self.resolution_ifov = np.array(28.0e-6, dtype=np.float32)
+            self.resolution_km = np.array(1.0, dtype=np.float32)
         elif self["Rad"].resolution == "y: 0.000056 rad x: 0.000056 rad":
-            self.resolution_ifov = 56.0e-6
-            self.resolution_km = 2.0
+            self.resolution_ifov = np.array(56.0e-6, dtype=np.float32)
+            self.resolution_km = np.array(2.0, dtype=np.float32)
 
         self.band_id_safe = "C" + str(self["band_id"][...].item()).zfill(2)
 

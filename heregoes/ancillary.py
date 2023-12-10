@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Classes for working with ancillary datasets in the ABI fixed grid projection"""
+"""Classes for working with ancillary datasets in the ABI Fixed Grid projection"""
 
 import io
 
@@ -31,10 +31,9 @@ import os
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import netCDF4
 import numpy as np
 
-from heregoes import exceptions, projection
+from heregoes import exceptions, navigation, projection
 from heregoes.util import linear_interp, ncinterface
 
 SCRIPT_PATH = Path(__file__).parent.resolve()
@@ -96,7 +95,7 @@ class AncillaryDataset:
 class IREMIS(AncillaryDataset):
     """
     Loads in UW CIMSS' Baseline Fit Infrared Emissivity Database a.k.a IREMIS (Download and info: https://cimss.ssec.wisc.edu/iremis/)
-    and projects to the ABI fixed grid. Requres IREMIS netCDFs to be present in a directory set by the `iremis_dir` argument or
+    and projects to the ABI Fixed Grid. Requres IREMIS netCDFs to be present in a directory set by the `iremis_dir` argument or
     by the HEREGOES_ENV_IREMIS_DIR environmental variable.
 
     Provides a linear interpolation of land surface emissivity for:
@@ -105,15 +104,20 @@ class IREMIS(AncillaryDataset):
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
+        - `index`: Optionally constrains the IREMIS dataset to an index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
         - `iremis_dir`: Location of IREMIS netCDF files. Defaults to the directory set by the HEREGOES_ENV_IREMIS_DIR environmental variable
     """
 
-    def __init__(self, abi_data, iremis_dir=IREMIS_DIR):
+    def __init__(self, abi_data, index=None, iremis_dir=IREMIS_DIR):
         super().__init__()
 
         self.abi_data = abi_data
+        self.index = index
         month = self.abi_data.time_coverage_start.month
         self.dataset_name = "iremis_month" + str(month).zfill(2)
+
+        if self.index is None:
+            self.index = np.s_[:, :]
 
         try:
             iremis_dir = Path(iremis_dir)
@@ -124,7 +128,7 @@ class IREMIS(AncillaryDataset):
                 exception=e,
             )
 
-        iremis_locations = iremis_dir.joinpath("global_emis_inf10_location.nc")
+        iremis_locations_nc = iremis_dir.joinpath("global_emis_inf10_location.nc")
         iremis_months = [
             "global_emis_inf10_monthFilled_MYD11C3.A2016001.041.nc",
             "global_emis_inf10_monthFilled_MYD11C3.A2016032.041.nc",
@@ -176,13 +180,13 @@ class IREMIS(AncillaryDataset):
             np.rot90(self.data["c14_land_emissivity"], k=1)
         )
 
-        with netCDF4.Dataset(iremis_locations, "r") as iremis_locations_nc:
-            iremis_ul_lat = iremis_locations_nc["lat"][0, 0]
-            iremis_ul_lon = iremis_locations_nc["lon"][0, 0]
-            iremis_lr_lat = iremis_locations_nc["lat"][-1, -1]
-            iremis_lr_lon = iremis_locations_nc["lon"][-1, -1]
+        iremis_locations = ncinterface.NCInterface(iremis_locations_nc)
+        iremis_ul_lat = iremis_locations["lat"][0, 0].item()
+        iremis_ul_lon = iremis_locations["lon"][0, 0].item()
+        iremis_lr_lat = iremis_locations["lat"][-1, -1].item()
+        iremis_lr_lon = iremis_locations["lon"][-1, -1].item()
 
-        abi_projection = projection.ABIProjection(self.abi_data)
+        abi_projection = projection.ABIProjection(self.abi_data, index=self.index)
         self.data["c07_land_emissivity"] = abi_projection.resample2abi(
             self.data["c07_land_emissivity"],
             latlon_bounds=[iremis_ul_lon, iremis_ul_lat, iremis_lr_lon, iremis_lr_lat],
@@ -198,22 +202,38 @@ class IREMIS(AncillaryDataset):
 class WaterMask(AncillaryDataset):
     """
     Loads in Global Self-consistent, Hierarchical, High-resolution Shorelines (GSHHS a.k.a GSHHG) (http://www.soest.hawaii.edu/pwessel/gshhg/)
-    and projects to the ABI fixed grid. Natural Earth rivers (https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-rivers-lake-centerlines/)
+    and projects to the ABI Fixed Grid. Natural Earth rivers (https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-rivers-lake-centerlines/)
     are optionally added on top of GSHHS when `rivers` is `True`. Both the GSHHS and Natural Earth datasets are automatically downloaded by Cartopy.
 
     Provides a boolean land/water mask in `data['water_mask']` where water is `False` and land is `True`.
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
+        - `index`: Optionally constrains the GSHHS dataset to an index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
         - `gshhs_scale`: 'auto', 'coarse', 'low', 'intermediate', 'high, or 'full' (https://scitools.org.uk/cartopy/docs/latest/reference/generated/cartopy.feature.GSHHSFeature.html)
         - `rivers`: Default `False`
     """
 
-    def __init__(self, abi_data, gshhs_scale="intermediate", rivers=False):
+    def __init__(
+        self,
+        abi_data,
+        index=None,
+        gshhs_scale="intermediate",
+        rivers=False,
+    ):
         super().__init__()
 
         self.abi_data = abi_data
+        self.index = index
         self.dataset_name = "gshhs_" + gshhs_scale
+
+        if self.index is None:
+            self.index = np.s_[:, :]
+
+        y_rad = self.abi_data["y"][self.index[0]]
+        x_rad = self.abi_data["x"][self.index[1]]
+
+        self._abi_height, self._abi_width = y_rad.size, x_rad.size
 
         # https://scitools.org.uk/cartopy/docs/latest/crs/index.html#cartopy.crs.Globe
         goes_globe = ccrs.Globe(
@@ -245,32 +265,31 @@ class WaterMask(AncillaryDataset):
         dpi = 1000
         plt.figure(
             figsize=(
-                self.abi_data.dimensions["x"].size / dpi,
-                self.abi_data.dimensions["y"].size / dpi,
+                self._abi_width / dpi,
+                self._abi_height / dpi,
             ),
             dpi=dpi,
         )
         ax = plt.axes(projection=goes_projection)
 
-        # cartopy errors on extents the size of the ABI Full Disk
-        if self.abi_data.scene_id != "Full Disk":
-            ul_x = (
-                self.abi_data["x_image_bounds"][0]
-                * self.abi_data["goes_imager_projection"].perspective_point_height
-            )
-            ul_y = (
-                self.abi_data["y_image_bounds"][0]
-                * self.abi_data["goes_imager_projection"].perspective_point_height
-            )
-            lr_x = (
-                self.abi_data["x_image_bounds"][1]
-                * self.abi_data["goes_imager_projection"].perspective_point_height
-            )
-            lr_y = (
-                self.abi_data["y_image_bounds"][1]
-                * self.abi_data["goes_imager_projection"].perspective_point_height
-            )
-            ax.set_extent([ul_x, lr_x, ul_y, lr_y], crs=goes_projection)
+        h = self.abi_data["goes_imager_projection"].perspective_point_height
+
+        # the full scanning angle extents are given by the gridded projection coordinates padded by half of the pixel IFOV on all sides
+        ul_x = (
+            (np.atleast_1d(x_rad[0]) - (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+        ul_y = (
+            (np.atleast_1d(y_rad[0]) + (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+        lr_x = (
+            (np.atleast_1d(x_rad[-1]) + (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+        lr_y = (
+            (np.atleast_1d(y_rad[-1]) - (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+
+        ax.set_ylim([lr_y, ul_y])
+        ax.set_xlim([ul_x, lr_x])
 
         # https://scitools.org.uk/cartopy/docs/v0.14/matplotlib/feature_interface.html#cartopy.feature.GSHHSFeature
         gshhs_coastline = cf.GSHHSFeature(
@@ -338,8 +357,8 @@ class WaterMask(AncillaryDataset):
         self.data["water_mask"] = np.reshape(
             np.frombuffer(io_buf.getvalue(), dtype=np.uint8),
             newshape=(
-                self.abi_data.dimensions["y"].size,
-                self.abi_data.dimensions["x"].size,
+                self._abi_height,
+                self._abi_width,
                 -1,
             ),
         )

@@ -20,6 +20,7 @@
 
 import os
 import uuid
+from pathlib import Path
 
 import numpy as np
 from osgeo import gdal
@@ -35,19 +36,25 @@ if os.getenv("HEREGOES_ENV_PARALLEL", "False").lower() == "true":
 
 class ABIProjection:
     """
-    This is a class for projecting NumPy arrays to and from the ABI fixed grid in memory with GDAL.
+    This is a class for projecting NumPy arrays to and from the ABI Fixed Grid in memory with GDAL.
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
+        - `index`: Optionally constrains the projection to an index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
 
     Class methods:
-        - `resample2abi(latlon_array)` resamples an array with WGS84 lat/lon projection to the ABI fixed grid domain. Returns the resampled array if convert_np is `True` (default), otherwise returns the GDAL dataset
-        - `resample2latlon(abi_array)` resamples an ABI array from the ABI fixed grid domain to WGS84 lat/lon projection. Returns the resampled array if convert_np is `True` (default), otherwise returns the GDAL dataset
-        - `resample2cog(abi_array, cog_filepath)` resamples an ABI array from the ABI fixed grid domain to WGS84 lat/lon projection and saves to a Cloud Optimized GeoTIFF (COG) at the filepath `cog_filepath`
+        - `resample2abi(latlon_array)` resamples an array with WGS84 lat/lon projection to the ABI Fixed Grid domain. Returns the resampled array if convert_np is `True` (default), otherwise returns the GDAL dataset
+        - `resample2latlon(abi_array)` resamples an ABI array from the ABI Fixed Grid domain to WGS84 lat/lon projection. Returns the resampled array if convert_np is `True` (default), otherwise returns the GDAL dataset
+        - `resample2cog(abi_array, cog_filepath)` resamples an ABI array from the ABI Fixed Grid domain to WGS84 lat/lon projection and saves to a Cloud Optimized GeoTIFF (COG) at the filepath `cog_filepath`
     """
 
-    def __init__(self, abi_data):
+    def __init__(self, abi_data, index=None):
         self.abi_data = abi_data
+        self.index = index
+
+        if self.index is None:
+            self.index = np.s_[:, :]
+
         h = self.abi_data["goes_imager_projection"].perspective_point_height
         a = self.abi_data["goes_imager_projection"].semi_major_axis
         b = self.abi_data["goes_imager_projection"].semi_minor_axis
@@ -56,10 +63,26 @@ class ABIProjection:
         lon_0 = self.abi_data["goes_imager_projection"].longitude_of_projection_origin
         sweep = self.abi_data["goes_imager_projection"].sweep_angle_axis
 
-        ul_x = (self.abi_data["x_image_bounds"][0] * h).item()
-        ul_y = (self.abi_data["y_image_bounds"][0] * h).item()
-        lr_x = (self.abi_data["x_image_bounds"][1] * h).item()
-        lr_y = (self.abi_data["y_image_bounds"][1] * h).item()
+        y_rad = self.abi_data["y"][self.index[0]]
+        x_rad = self.abi_data["x"][self.index[1]]
+
+        self._abi_height, self._abi_width = y_rad.size, x_rad.size
+
+        # the full scanning angle extents are given by the gridded projection coordinates padded by half of the pixel IFOV on all sides
+        ul_x = (
+            (np.atleast_1d(x_rad[0]) - (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+        ul_y = (
+            (np.atleast_1d(y_rad[0]) + (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+        lr_x = (
+            (np.atleast_1d(x_rad[-1]) + (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+        lr_y = (
+            (np.atleast_1d(y_rad[-1]) - (self.abi_data.resolution_ifov / 2)) * h
+        ).item()
+
+        # GDAL bounds are ul_x, ul_y, lr_x, lr_y
         self.abi_bounds = [ul_x, ul_y, lr_x, lr_y]
 
         self._intermediate_format = "GTiff"
@@ -164,7 +187,6 @@ class ABIProjection:
         interpolation="nearest",
         convert_np=True,
     ):
-        # GDAL bounds are ul_x, ul_y, lr_x, lr_y
         ds = self._make_dataset(latlon_array)
 
         translate_options = gdal.TranslateOptions(
@@ -178,8 +200,8 @@ class ABIProjection:
             srcSRS=self.latlon_srs,
             dstSRS=self.abi_srs,
             outputBounds=self.abi_bounds,
-            width=self.abi_data.dimensions["x"].size,
-            height=self.abi_data.dimensions["y"].size,
+            width=self._abi_width,
+            height=self._abi_height,
             format=self._intermediate_format,
             resampleAlg=interpolation.lower(),
             creationOptions=self._intermediate_gdal_options,
@@ -228,6 +250,8 @@ class ABIProjection:
         interpolation="LANCZOS",
         gdal_compression_algo="LZW",
     ):
+        cog_filepath = Path(cog_filepath)
+
         resampled = self.resample2latlon(
             abi_array, interpolation=interpolation, convert_np=False
         )
@@ -238,6 +262,11 @@ class ABIProjection:
             f"PREDICTOR=YES",
             f"OVERVIEW_RESAMPLING={interpolation}",
         ]
+
+        if cog_filepath.exists() and (
+            cog_filepath.is_file() or cog_filepath.is_symlink()
+        ):
+            cog_filepath.unlink()
 
         drv = gdal.GetDriverByName("COG")
         drv.CreateCopy(str(cog_filepath), resampled, options=final_gdal_options)

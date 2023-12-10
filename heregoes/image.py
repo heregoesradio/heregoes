@@ -31,7 +31,7 @@ from scipy import ndimage
 
 from heregoes import exceptions, load
 from heregoes.goesr import abi, suvi
-from heregoes.util import make_8bit
+from heregoes.util import make_8bit, scale_idx
 
 logger = logging.getLogger("heregoes-logger")
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
@@ -83,7 +83,7 @@ class ABIImage(Image):
     def __init__(
         self,
         abi_nc,
-        index=slice(None, None),
+        index=None,
         gamma=1.0,
         black_space=False,
     ):
@@ -101,12 +101,13 @@ class ABIImage(Image):
 
         Arguments:
             - `abi_nc`: String or Path object pointing to a GOES-R ABI L1b Radiance netCDF file
-            - `index`: Optionally process an ABI image for a single array index or slice
+            - `index`: Optionally constrains the ABI image to an index or continuous slice on the ABI Fixed Grid matching the resolution in the provided `abi_nc` file
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
             - `black_space`: Optionally overwrites the masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `True`
         """
 
         super().__init__()
+        self.index = index
         self.gamma = gamma
         self.black_space = black_space
 
@@ -114,8 +115,11 @@ class ABIImage(Image):
 
         self.abi_data = load(abi_nc)
 
-        self.rad = self.abi_data["Rad"][index]
-        self.dqf = self.abi_data["DQF"][index]
+        if self.index is None:
+            self.index = np.s_[:, :]
+
+        self.rad = self.abi_data["Rad"][self.index]
+        self.dqf = self.abi_data["DQF"][self.index]
         self.mask = self.abi_data["Rad"].mask
         self.quality = self.abi_data["Rad"].pct_unmasked
 
@@ -193,6 +197,7 @@ class ABINaturalRGB(Image):
         red_nc,
         green_nc,
         blue_nc,
+        index=None,
         r_coeff=0.45,
         g_coeff=0.1,
         b_coeff=0.45,
@@ -206,6 +211,7 @@ class ABINaturalRGB(Image):
 
         Arguments:
             - `red_nc`, `green_nc`, `blue_nc`: Strings or Path objects pointing to GOES-R ABI L1b Radiance netCDF files for the red (0.64 μm), green (0.86 μm), and blue (0.47 μm) components
+            - `index`: Optionally constrains the ABI imagery to an index or continuous slice on the ABI Fixed Grid. If `upscale` is `False` (default), this is an index on the 1 km Fixed Grid. Otherwise, if `upscale` is `True`, a 500 m Fixed Grid is used
             - `r_coeff`, `g_coeff`, `b_coeff`: Coefficients for the fractional combination "green" band method described in Bah et. al (2018)
             - `upscale`: Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
             - `upscale_algo`: The OpenCV interpolation algorithm used for upscaling green and blue images. See https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121. Default `cv2.INTER_CUBIC`
@@ -214,71 +220,116 @@ class ABINaturalRGB(Image):
         """
 
         super().__init__()
+        self.index = index
 
-        red_image = ABIImage(red_nc, gamma=gamma, black_space=black_space)
-        green_image = ABIImage(green_nc, gamma=gamma, black_space=black_space)
-        blue_image = ABIImage(blue_nc, gamma=gamma, black_space=black_space)
+        if self.index is None:
+            self.index = np.s_[:, :]
 
         if upscale:
-            # upscale green and blue to the size of red
-            green_image.bv = cv2.resize(
-                green_image.bv,
-                (red_image.bv.shape[1], red_image.bv.shape[0]),
-                interpolation=upscale_algo,
-            )
-            green_image.dqf = cv2.resize(
-                green_image.dqf,
-                (red_image.dqf.shape[1], red_image.dqf.shape[0]),
-                interpolation=cv2.INTER_NEAREST,
-            )
-            green_image.mask = (
-                cv2.resize(
-                    green_image.mask.astype(np.uint8),
-                    (red_image.mask.shape[1], red_image.mask.shape[0]),
-                    interpolation=cv2.INTER_NEAREST,
-                )
-                == 1
-            )
-
-            blue_image.bv = cv2.resize(
-                blue_image.bv,
-                (red_image.bv.shape[1], red_image.bv.shape[0]),
-                interpolation=upscale_algo,
-            )
-            blue_image.dqf = cv2.resize(
-                blue_image.dqf,
-                (red_image.dqf.shape[1], red_image.dqf.shape[0]),
-                interpolation=cv2.INTER_NEAREST,
-            )
-            blue_image.mask = (
-                cv2.resize(
-                    blue_image.mask.astype(np.uint8),
-                    (red_image.mask.shape[1], red_image.mask.shape[0]),
-                    interpolation=cv2.INTER_NEAREST,
-                )
-                == 1
-            )
+            scaler_500m = 1.0
+            scaler_1km = 2.0
 
         else:
-            # downscale red to the size of green and blue
-            red_image.bv = cv2.resize(
-                red_image.bv,
-                (green_image.bv.shape[1], green_image.bv.shape[0]),
-                interpolation=cv2.INTER_AREA,
-            )
-            red_image.dqf = cv2.resize(
-                red_image.dqf,
-                (green_image.dqf.shape[1], green_image.dqf.shape[0]),
+            scaler_500m = 0.5
+            scaler_1km = 1.0
+
+        # make images
+        red_image = ABIImage(
+            red_nc,
+            index=scale_idx(self.index, 1 / scaler_500m),
+            gamma=gamma,
+            black_space=black_space,
+        )
+        green_image = ABIImage(
+            green_nc,
+            index=scale_idx(self.index, 1 / scaler_1km),
+            gamma=gamma,
+            black_space=black_space,
+        )
+        blue_image = ABIImage(
+            blue_nc,
+            index=scale_idx(self.index, 1 / scaler_1km),
+            gamma=gamma,
+            black_space=black_space,
+        )
+
+        # resize red
+        red_image.bv = cv2.resize(
+            red_image.bv,
+            None,
+            fx=scaler_500m,
+            fy=scaler_500m,
+            interpolation=cv2.INTER_AREA,
+        )
+        red_image.dqf = cv2.resize(
+            red_image.dqf,
+            None,
+            fx=scaler_500m,
+            fy=scaler_500m,
+            interpolation=cv2.INTER_NEAREST,
+        )
+        red_image.mask = (
+            cv2.resize(
+                red_image.mask.astype(np.uint8),
+                None,
+                fx=scaler_500m,
+                fy=scaler_500m,
                 interpolation=cv2.INTER_NEAREST,
             )
-            red_image.mask = (
-                cv2.resize(
-                    red_image.mask.astype(np.uint8),
-                    (green_image.mask.shape[1], green_image.mask.shape[0]),
-                    interpolation=cv2.INTER_NEAREST,
-                )
-                == 1
+            == 1
+        )
+
+        # resize green
+        green_image.bv = cv2.resize(
+            green_image.bv,
+            None,
+            fx=scaler_1km,
+            fy=scaler_1km,
+            interpolation=upscale_algo,
+        )
+        green_image.dqf = cv2.resize(
+            green_image.dqf,
+            None,
+            fx=scaler_1km,
+            fy=scaler_1km,
+            interpolation=cv2.INTER_NEAREST,
+        )
+        green_image.mask = (
+            cv2.resize(
+                green_image.mask.astype(np.uint8),
+                None,
+                fx=scaler_1km,
+                fy=scaler_1km,
+                interpolation=cv2.INTER_NEAREST,
             )
+            == 1
+        )
+
+        # resize blue
+        blue_image.bv = cv2.resize(
+            blue_image.bv,
+            None,
+            fx=scaler_1km,
+            fy=scaler_1km,
+            interpolation=upscale_algo,
+        )
+        blue_image.dqf = cv2.resize(
+            blue_image.dqf,
+            None,
+            fx=scaler_1km,
+            fy=scaler_1km,
+            interpolation=cv2.INTER_NEAREST,
+        )
+        blue_image.mask = (
+            cv2.resize(
+                blue_image.mask.astype(np.uint8),
+                None,
+                fx=scaler_1km,
+                fy=scaler_1km,
+                interpolation=cv2.INTER_NEAREST,
+            )
+            == 1
+        )
 
         green_image.bv = (
             (red_image.bv * r_coeff)

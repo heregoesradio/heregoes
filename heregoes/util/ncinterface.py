@@ -141,37 +141,6 @@ class _NCVar(_NCBase):
         if not lazy_load:
             self._loadvar()
 
-    def _loadvar(self):
-        logger.debug(
-            "Loading variable %s with slice %s",
-            self.name,
-            str(self._slc),
-            extra={"caller": f"{__name__}.{self.__class__.__name__}"},
-        )
-
-        self.__value__ = self._loaded_nc.variables[self.name][self._slc]
-        is_masked = np.ma.isMaskedArray(self.__value__)
-
-        # broadcast the mask in case it is 1D or a scalar
-        if is_masked:
-            self._mask = np.broadcast_to(self.__value__.mask, self.__value__.shape)
-            self.pct_unmasked = self.__value__.count() / self.__value__.size
-        else:
-            self.pct_unmasked = 1.0
-
-        self.__value__ = np.atleast_1d(self.__value__)
-
-        if is_masked:
-            if self._override_fill_value is not None:
-                self.__value__.set_fill_value(self._override_fill_value)
-
-            self.__value__ = self.__value__.filled()
-
-        # gather updated attrs of the numpy array
-        super()._copy_attrs(self.__value__, self, self.__npattrs__)
-
-        self._is_loaded = True
-
     @property
     def mask(self):
         if not self._is_loaded:
@@ -188,9 +157,53 @@ class _NCVar(_NCBase):
             if self._is_loaded:
                 self._loadvar()
 
+    def _loadvar(self):
+        logger.debug(
+            "Loading variable %s with slice %s",
+            self.name,
+            str(self._slc),
+            extra={"caller": f"{__name__}.{self.__class__.__name__}"},
+        )
+
+        self.__value__ = self._loaded_nc.variables[self.name][self._slc]
+        is_masked = np.ma.isMaskedArray(self.__value__)
+
+        # broadcast the mask in case it is 1D or a scalar
+        if is_masked:
+            self._mask = np.broadcast_to(self.__value__.mask, self.__value__.shape)
+            self.pct_unmasked = self.__value__.count() / max(self.__value__.size, 1)
+        else:
+            self.pct_unmasked = 1.0
+
+        self.__value__ = np.atleast_1d(self.__value__)
+
+        if is_masked:
+            if self._override_fill_value is not None:
+                self.__value__.set_fill_value(self._override_fill_value)
+
+            self.__value__ = self.__value__.filled()
+
+        # gather updated attrs of the numpy array
+        super()._copy_attrs(self.__value__, self, self.__npattrs__)
+
+        self._is_loaded = True
+
+    def _slice_changed(self, slc):
+        # return true if the slice changed
+        slc = np.s_[slc]
+
+        if isinstance(slc, np.ndarray) and isinstance(self._slc, np.ndarray):
+            return (slc != self._slc).any()
+
+        elif type(slc) == type(self._slc):
+            return slc != self._slc
+
+        else:
+            return True
+
     def __getitem__(self, slc):
         slc = np.s_[slc]
-        if not self._is_loaded or slc != self._slc:
+        if not self._is_loaded or self._slice_changed(slc):
             self._slc = slc
             self._loadvar()
 
@@ -198,7 +211,7 @@ class _NCVar(_NCBase):
 
     def __setitem__(self, slc, val):
         slc = np.s_[slc]
-        if not self._is_loaded or slc != self._slc:
+        if not self._is_loaded or self._slice_changed(slc):
             self._slc = slc
             self._loadvar()
 

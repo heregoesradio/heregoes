@@ -76,6 +76,39 @@ def x4(arr):
     return nearest_scale(arr, k=4)
 
 
+def scale_idx(idx, scale_factor):
+    """
+    Adjusts an array index or slice by `scale_factor`.
+    Useful for referencing the same point between different spatial resolutions, e.g. converting a 500 m index for use with a 2 km product using a scale factor of 0.25.
+    """
+
+    def safe_floor(value):
+        if value is None or value is Ellipsis:
+            return value
+
+        else:
+            return int(np.floor(value * scale_factor))
+
+    def slice_floor(slc):
+        start = safe_floor(slc.start)
+        stop = safe_floor(slc.stop)
+        step = safe_floor(slc.step)
+
+        return np.s_[start:stop:step]
+
+    idx = np.s_[idx]
+
+    scaled_idx = []
+    for i in tuple(idx):
+        if isinstance(i, slice):
+            scaled_idx.append(slice_floor(i))
+
+        else:
+            scaled_idx.append(safe_floor(i))
+
+    return tuple(scaled_idx)
+
+
 @njit.heregoes_njit_noparallel
 def window_slice(arr, center_index, outer_radius, inner_radius=0, replace_inner=True):
     """
@@ -225,7 +258,25 @@ def nearest_2d(y_arr, x_arr, target_y, target_x):
         y_arr.ravel()[np.nonzero(np.isnan(y_arr.ravel()))] = np.inf
         x_arr.ravel()[np.nonzero(np.isnan(x_arr.ravel()))] = np.inf
 
-    return unravel_index(
-        int(np.argmin(np.maximum(np.abs(y_arr - target_y), np.abs(x_arr - target_x)))),
-        y_arr.shape,
-    )
+    nearest_ys = np.zeros(target_y.ravel().shape, dtype=np.int64)
+    nearest_xs = np.zeros(target_x.ravel().shape, dtype=np.int64)
+
+    flatidx = 0
+    for idx, val in np.ndenumerate(target_y):
+        nearest_y, nearest_x = unravel_index(
+            int(
+                np.argmin(
+                    np.maximum(
+                        np.abs(y_arr - target_y[idx]), np.abs(x_arr - target_x[idx])
+                    )
+                )
+            ),
+            y_arr.shape,
+        )
+
+        nearest_ys[flatidx] = nearest_y
+        nearest_xs[flatidx] = nearest_x
+
+        flatidx += 1
+
+    return (nearest_ys, nearest_xs)

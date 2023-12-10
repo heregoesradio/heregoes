@@ -207,8 +207,11 @@ def test_projection():
         abi_rgb.bv, output_dir.joinpath(abi_rgb.default_filename + ".tiff")
     )
 
-    abi_rgb = image.ABINaturalRGB(abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, gamma=0.75)
-    abi_projection = projection.ABIProjection(abi_rgb.abi_data)
+    slc = np.s_[0:3500, 1000:9000]
+    abi_rgb = image.ABINaturalRGB(
+        abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, index=slc, upscale=True, gamma=0.75
+    )
+    abi_projection = projection.ABIProjection(abi_rgb.abi_data, index=slc)
     abi_rgb = abi_projection.resample2cog(
         abi_rgb.bv, output_dir.joinpath(abi_rgb.default_filename + ".tiff")
     )
@@ -284,6 +287,34 @@ def test_navigation():
     )
     assert abi_nav.index == idx
 
+    # test retrieving indices fron multiple points
+    abi_nav = navigation.ABINavigation(
+        abi_data,
+        lat_deg=np.array(
+            [
+                [44.73149490356445, 44.73029708862305],
+                [44.70037841796875, 44.699180603027344],
+            ],
+            dtype=np.float32,
+        ),
+        lon_deg=np.array(
+            [
+                [-93.01798248291016, -92.98883819580078],
+                [-93.00658416748047, -92.97746276855469],
+            ],
+            dtype=np.float32,
+        ),
+    )
+    assert abi_nav.index == np.s_[92:94, 42:44]
+
+    # test that the indices work
+    abi_nav2 = navigation.ABINavigation(
+        abi_data,
+        index=abi_nav.index,
+    )
+    assert (abi_nav2.lat_deg == abi_nav.lat_deg).all()
+    assert (abi_nav2.lon_deg == abi_nav.lon_deg).all()
+
     # test on a navigation dataset that contains NaNs (G16 CONUS)
     abi_data = load(abi_cc07_nc)
     abi_nav = navigation.ABINavigation(
@@ -291,26 +322,56 @@ def test_navigation():
     )
     assert abi_nav.index == (192, 1152)
 
+    # test retrieving indices fron multiple points
+    abi_nav = navigation.ABINavigation(
+        abi_data,
+        lat_deg=np.array(
+            [
+                [44.73149871826172, 44.73030090332031],
+                [44.700382232666016, 44.699188232421875],
+            ],
+            dtype=np.float32,
+        ),
+        lon_deg=np.array(
+            [
+                [-93.01798248291016, -92.98883819580078],
+                [-93.006591796875, -92.97746276855469],
+            ],
+            dtype=np.float32,
+        ),
+    )
+    assert abi_nav.index == np.s_[192:194, 1152:1154]
+
+    # test that the indices work
+    abi_nav2 = navigation.ABINavigation(
+        abi_data,
+        index=abi_nav.index,
+    )
+    assert (abi_nav2.lat_deg == abi_nav.lat_deg).all()
+    assert (abi_nav2.lon_deg == abi_nav.lon_deg).all()
+
 
 def test_ancillary():
+    slc = np.s_[250:1250, 500:2000]
+
     abi_data = load(abi_cc07_nc)
-    water = ancillary.WaterMask(abi_data, rivers=True)
+    water = ancillary.WaterMask(abi_data, index=slc, rivers=True)
 
     assert water.data["water_mask"].dtype == bool
     assert water.data["water_mask"].shape == (
-        abi_data.dimensions["y"].size,
-        abi_data.dimensions["x"].size,
+        1000,
+        1500,
     )
 
     water.save(save_dir=output_dir)
     cv2.imwrite(str(output_dir.joinpath("water.png")), water.data["water_mask"] * 255)
 
-    iremis = ancillary.IREMIS(abi_data)
+    iremis = ancillary.IREMIS(abi_data, index=slc)
 
     assert iremis.data["c07_land_emissivity"].dtype == np.float32
     assert iremis.data["c07_land_emissivity"].shape == (
-        abi_data.dimensions["y"].size,
-        abi_data.dimensions["x"].size,
+        1000,
+        1500,
     )
 
     iremis.save(save_dir=output_dir)

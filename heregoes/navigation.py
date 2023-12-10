@@ -29,13 +29,13 @@ from heregoes.util import nearest_2d, njit, orbital, rad2deg
 class ABINavigation:
     """
     This is a class for GOES-R ABI navigation routines using an ABIObject to access netCDF data.
-    The routines may be constrained to a single pixel by `index`, or to a single location by providing `lat_deg` and `lon_deg` (degrees).
+    The routines may be constrained to a single index or continuous slice of the ABI Fixed Grid with `index`, or to a single area by providing `lat_deg` and `lon_deg` (degrees).
     All calculations return 32-bit floating point NumPy arrays which should be accurate enough for most applications at this scale.
 
     The following quantities are always generated upon instantiation:
         - Instrument scanning angle (`y_rad`, `x_rad`)
         - Latitude and longitude of pixels from instrument scanning angle (`lat_deg`, `lon_deg`)
-            OR index of a single pixel (`index`) from latitude and longitude (degrees)
+            OR the index or continuous slice of an area on the ABI Fixed Grid (`index`) from latitude and longitude (degrees)
 
     These quantities may be generated upon access after instantiation:
         - Angles of the satellite vector at the pixel (`sat_za`, `sat_az`)
@@ -53,7 +53,7 @@ class ABINavigation:
     def __init__(
         self,
         abi_data,
-        index=slice(None, None),
+        index=None,
         lat_deg=None,
         lon_deg=None,
         hae_m=0.0,
@@ -74,15 +74,13 @@ class ABINavigation:
         self._sun_az = None
         self._area_m = None
 
-        if self.index == slice(None, None):
-            self.x_rad, self.y_rad = np.meshgrid(
-                self.abi_data["x"][...],
-                self.abi_data["y"][...],
-            )
+        if self.index is None:
+            self.index = np.s_[:, :]
 
-        else:
-            self.x_rad = np.atleast_1d(self.abi_data["x"][self.index[1]])
-            self.y_rad = np.atleast_1d(self.abi_data["y"][self.index[0]])
+        self.x_rad, self.y_rad = np.meshgrid(
+            self.abi_data["x"][self.index[1]],
+            self.abi_data["y"][self.index[0]],
+        )
 
         if lat_deg is None or lon_deg is None:
             self.lat_deg, self.lon_deg = self.navigate(
@@ -149,6 +147,17 @@ class ABINavigation:
             self.index = nearest_2d(
                 self.y_rad, self.x_rad, derived_y_rad, derived_x_rad
             )
+
+            # form a tuple of slices to encompass a continuous range
+            if len(self.index[0]) > 1 or len(self.index[1]) > 1:
+                self.index = tuple(
+                    slice(idx.T.min(), idx.T.max() + 1) for idx in self.index
+                )
+
+            # or form a single tuple index
+            else:
+                self.index = (self.index[0].item(), self.index[1].item())
+
             self.y_rad = derived_y_rad
             self.x_rad = derived_x_rad
 
@@ -306,7 +315,7 @@ class ABINavigation:
         )
 
     @staticmethod
-    @njit.heregoes_njit
+    @njit.heregoes_njit_noparallel
     def reverse_navigate(
         lat_deg, lon_deg, lon_origin, r_eq, r_pol, sat_height, feature_height
     ):
