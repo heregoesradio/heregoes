@@ -21,7 +21,7 @@ This is the core processing library used by [Here GOES Radiotelescope (2020)](ht
 
 ## Setup
 
-Clone this repository and install the Conda environment. For Intel machines, use heregoes-env-intel.yml which uses MKL for acceleration. For other architectures, including ARM64 (e.g. Raspberry Pi 4), use heregoes-env-other.yml which installs with OpenBLAS.
+Clone this repository and install the Conda environment. For Intel machines, use heregoes-env-intel.yml which uses MKL for acceleration. For other architectures, including ARM64 (e.g. Raspberry Pi 5), use heregoes-env-other.yml which installs with OpenBLAS.
 ```
 conda env create -f heregoes-env-intel.yml
 conda activate heregoes-env
@@ -91,7 +91,7 @@ Which returns:
 
 ## Imagery Examples
 
-The heregoes library renders standard imagery for the GOES-R ABI and SUVI instruments following available literature wherever possible.
+The heregoes library renders standard imagery for the GOES-R ABI and SUVI instruments following available literature wherever possible. To reduce memory utilization, subsets of ABI images can be processed by specifying either an array index or continuous slice with the `index` argument, or with a latitude and longitude bounding box: `lat_bounds=[ul_lat, lr_lat]` and `lon_bounds=[ul_lon, lr_lon]`.
 
 ### Render a single-channel SUVI image
 
@@ -180,7 +180,7 @@ abi_navigation.sat_za #satellite zenith angle
 abi_navigation.sat_az #satellite azimuth in North-clockwise convention
 ```
 
-### Find a pixel in an ABI image from latitude and longitude
+### Find pixels in an ABI image from latitude and longitude
 
 With an ABI L1b radiance netCDF file `abi_nc`:
 
@@ -188,8 +188,8 @@ With an ABI L1b radiance netCDF file `abi_nc`:
 from heregoes import load, navigation
 
 abi_data = load(abi_nc)
-abi_navigation = navigation.ABINavigation(abi_data, lat_deg=44.72609499, lon_deg=-93.02279070)
-abi_navigation.index #nearest (y, x) index of the ABI image at provided latitude and longitude
+abi_navigation = navigation.ABINavigation(abi_data, lat_bounds=[44.731495, 44.602596], lon_bounds=[-93.01798, -92.85648])
+abi_navigation.index #nearest (y, x) index or slice of the ABI image at provided latitude and longitude bounds
 ```
 
 ---

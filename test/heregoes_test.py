@@ -18,141 +18,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from pathlib import Path
+import gc
 
 import cv2
 import numpy as np
 
 from heregoes import ancillary, exceptions, image, load, navigation, projection
-from heregoes.util import minmax
+from heregoes.util import minmax, scale_idx
 
-SCRIPT_PATH = Path(__file__).parent.resolve()
+from .test_resources import *
 
-input_dir = SCRIPT_PATH.joinpath("input")
-input_dir.mkdir(parents=True, exist_ok=True)
 output_dir = SCRIPT_PATH.joinpath("output")
 output_dir.mkdir(parents=True, exist_ok=True)
 
 for output_file in output_dir.glob("*"):
     output_file.unlink()
 
-# abi
-abi_mc01_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C01_G16_s20211691942252_e20211691942310_c20211691942342.nc"
-)
-abi_mc02_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C02_G16_s20211691942252_e20211691942310_c20211691942334.nc"
-)
-abi_mc03_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C03_G16_s20211691942252_e20211691942310_c20211691942351.nc"
-)
-abi_mc04_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C04_G16_s20211691942252_e20211691942310_c20211691942340.nc"
-)
-abi_mc05_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C05_G16_s20211691942252_e20211691942310_c20211691942347.nc"
-)
-abi_mc06_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C06_G16_s20211691942252_e20211691942315_c20211691942345.nc"
-)
-abi_mc07_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C07_G16_s20211691942252_e20211691942321_c20211691942355.nc"
-)
-abi_mc08_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C08_G16_s20211691942252_e20211691942310_c20211691942357.nc"
-)
-abi_mc09_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C09_G16_s20211691942252_e20211691942315_c20211691942368.nc"
-)
-abi_mc10_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C10_G16_s20211691942252_e20211691942322_c20211691942353.nc"
-)
-abi_mc11_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C11_G16_s20211691942252_e20211691942310_c20211691942348.nc"
-)
-abi_mc12_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C12_G16_s20211691942252_e20211691942316_c20211691942356.nc"
-)
-abi_mc13_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C13_G16_s20211691942252_e20211691942322_c20211691942361.nc"
-)
-abi_mc14_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C14_G16_s20211691942252_e20211691942310_c20211691942364.nc"
-)
-abi_mc15_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C15_G16_s20211691942252_e20211691942316_c20211691942358.nc"
-)
-abi_mc16_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadM1-M6C16_G16_s20211691942252_e20211691942322_c20211691942366.nc"
-)
-
-# add a few g16 conuses to test off-earth pixels
-abi_cc01_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadC-M6C01_G16_s20211691941174_e20211691943547_c20211691943589.nc"
-)
-abi_cc02_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadC-M6C02_G16_s20211691941174_e20211691943547_c20211691943571.nc"
-)
-abi_cc03_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadC-M6C03_G16_s20211691941174_e20211691943547_c20211691943587.nc"
-)
-abi_cc07_nc = input_dir.joinpath(
-    "abi/OR_ABI-L1b-RadC-M6C07_G16_s20211691941174_e20211691943558_c20211691944002.nc"
-)
-
-abi_ncs = [
-    abi_cc01_nc,
-    abi_cc02_nc,
-    abi_cc03_nc,
-    abi_cc07_nc,
-    abi_mc01_nc,
-    abi_mc02_nc,
-    abi_mc03_nc,
-    abi_mc04_nc,
-    abi_mc05_nc,
-    abi_mc06_nc,
-    abi_mc07_nc,
-    abi_mc08_nc,
-    abi_mc09_nc,
-    abi_mc10_nc,
-    abi_mc11_nc,
-    abi_mc12_nc,
-    abi_mc13_nc,
-    abi_mc14_nc,
-    abi_mc15_nc,
-    abi_mc16_nc,
-]
-
-# suvi
-suvi_094_nc = input_dir.joinpath(
-    "suvi/OR_SUVI-L1b-Fe093_G16_s20203160623501_e20203160623511_c20203160624091.nc"
-)
-suvi_131_nc = input_dir.joinpath(
-    "suvi/OR_SUVI-L1b-Fe131_G16_s20203160623001_e20203160623011_c20203160623196.nc"
-)
-suvi_171_nc = input_dir.joinpath(
-    "suvi/OR_SUVI-L1b-Fe171_G16_s20203160624201_e20203160624211_c20203160624396.nc"
-)
-suvi_195_nc = input_dir.joinpath(
-    "suvi/OR_SUVI-L1b-Fe195_G16_s20203160623301_e20203160623311_c20203160623491.nc"
-)
-suvi_284_nc = input_dir.joinpath(
-    "suvi/OR_SUVI-L1b-Fe284_G16_s20203160624501_e20203160624511_c20203160625090.nc"
-)
-suvi_304_nc = input_dir.joinpath(
-    "suvi/OR_SUVI-L1b-He303_G16_s20203160622501_e20203160622511_c20203160623090.nc"
-)
-suvi_ncs = [
-    suvi_094_nc,
-    suvi_131_nc,
-    suvi_171_nc,
-    suvi_195_nc,
-    suvi_284_nc,
-    suvi_304_nc,
-]
+epsilon_degrees = 1e-4
+epsilon_meters = 1
 
 
 def test_abi_image():
+    # test single-channel images
     for abi_nc in abi_ncs:
         abi_image = image.ABIImage(abi_nc, gamma=0.75)
 
@@ -162,26 +49,100 @@ def test_abi_image():
 
         abi_image.save(file_path=output_dir, file_ext=".jpg")
 
-    abi_rgb = image.ABINaturalRGB(
-        abi_mc02_nc,
-        abi_mc03_nc,
-        abi_mc01_nc,
-        upscale=True,
-        gamma=0.75,
-        black_space=True,
-    )
+    # test index alignment for subsetted RGB images
+    lat_bounds_500m = (46.0225830078125, 43.89013671875)
+    lon_bounds_500m = [-94.68467712402344, -91.75820922851562]
+    lat_bounds_1km = [46.02677536010742, 43.90188217163086]
+    lon_bounds_1km = (-94.6901626586914, -91.77256774902344)
 
-    assert abi_rgb.bv.dtype == np.uint8
+    for scene in ["meso", "conus"]:
+        if scene == "meso":
+            slc_500m = np.s_[213:474, 11:307]
+            r_nc = abi_mc02_nc
+            g_nc = abi_mc03_nc
+            b_nc = abi_mc01_nc
 
-    abi_rgb.save(file_path=output_dir, file_ext=".jpeg")
+        elif scene == "conus":
+            slc_500m = np.s_[613:875, 4451:4747]
+            r_nc = abi_cc02_nc
+            g_nc = abi_cc03_nc
+            b_nc = abi_cc01_nc
 
-    abi_rgb = image.ABINaturalRGB(
-        abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, gamma=0.75, black_space=True
-    )
+        slc_1km = scale_idx(slc_500m, 0.5)
 
-    assert abi_rgb.bv.dtype == np.uint8
+        for upscale in [True, False]:
+            if upscale:
+                slc = slc_500m
+                lat_bounds = lat_bounds_500m
+                lon_bounds = lon_bounds_500m
+            else:
+                slc = slc_1km
+                lat_bounds = lat_bounds_1km
+                lon_bounds = lon_bounds_1km
 
-    abi_rgb.save(file_path=output_dir, file_ext=".jpeg")
+            # full RGB
+            abi_rgb_full = image.ABINaturalRGB(
+                r_nc,
+                g_nc,
+                b_nc,
+                upscale=upscale,
+                gamma=0.75,
+                black_space=True,
+            )
+
+            assert abi_rgb_full.bv.dtype == np.uint8
+
+            abi_rgb_full.save(file_path=output_dir, file_ext=".jpeg")
+
+            # indexed RGB
+            abi_rgb_indexed_bounds = image.ABINaturalRGB(
+                r_nc,
+                g_nc,
+                b_nc,
+                index=slc,
+                upscale=upscale,
+                gamma=0.75,
+                black_space=True,
+            )
+
+            # latlon RGB
+            abi_rgb_latlon_bounds = image.ABINaturalRGB(
+                r_nc,
+                g_nc,
+                b_nc,
+                lat_bounds=lat_bounds,
+                lon_bounds=lon_bounds,
+                upscale=upscale,
+                gamma=0.75,
+                black_space=True,
+            )
+
+            # get the original index of the brightest pixel within the slice
+            brightest_idx_500m = np.unravel_index(
+                np.nanargmax(np.sum(abi_rgb_full.bv[slc], axis=2)),
+                abi_rgb_full.bv[slc].shape[0:2],
+            )
+
+            # if the RGB image is upscaled, then the 500m slice of the below subsetted images will have been aligned +1,+1 pixels to the 1 km FGF
+            brightest_idx_500m_aligned = tuple(
+                [i + upscale for i in brightest_idx_500m]
+            )
+            assert (
+                brightest_idx_500m_aligned
+                == np.unravel_index(
+                    np.nanargmax(np.sum(abi_rgb_indexed_bounds.bv, axis=2)),
+                    abi_rgb_indexed_bounds.bv.shape[0:2],
+                )
+                == np.unravel_index(
+                    np.nanargmax(np.sum(abi_rgb_latlon_bounds.bv, axis=2)),
+                    abi_rgb_latlon_bounds.bv.shape[0:2],
+                )
+            )
+
+            del abi_rgb_full
+            del abi_rgb_indexed_bounds
+            del abi_rgb_latlon_bounds
+            _ = gc.collect()
 
 
 def test_suvi_image():
@@ -199,10 +160,12 @@ def test_projection():
         abi_mc02_nc,
         abi_mc03_nc,
         abi_mc01_nc,
+        lat_bounds=[45.4524291240206, 44.567740562044825],
+        lon_bounds=[-93.86441304735817, -92.69697639796475],
         upscale=True,
         gamma=1.0,
     )
-    abi_projection = projection.ABIProjection(abi_rgb.abi_data)
+    abi_projection = projection.ABIProjection(abi_rgb.abi_data, index=abi_rgb.index)
     abi_rgb = abi_projection.resample2cog(
         abi_rgb.bv, output_dir.joinpath(abi_rgb.default_filename + ".tiff")
     )
@@ -211,173 +174,252 @@ def test_projection():
     abi_rgb = image.ABINaturalRGB(
         abi_cc02_nc, abi_cc03_nc, abi_cc01_nc, index=slc, upscale=True, gamma=0.75
     )
-    abi_projection = projection.ABIProjection(abi_rgb.abi_data, index=slc)
+    abi_projection = projection.ABIProjection(abi_rgb.abi_data, index=abi_rgb.index)
     abi_rgb = abi_projection.resample2cog(
         abi_rgb.bv, output_dir.joinpath(abi_rgb.default_filename + ".tiff")
     )
 
 
-def test_navigation():
+def test_point_navigation():
     idx = (92, 42)
 
-    abi_data = load(abi_mc07_nc)
+    meso_data = load(abi_mc07_nc)
 
-    abi_nav = navigation.ABINavigation(abi_data, precise_sun=False)
+    meso_nav = navigation.ABINavigation(meso_data, precise_sun=False)
 
-    assert abi_nav.lat_deg.dtype == np.float32
-    assert abi_nav.lon_deg.dtype == np.float32
-    assert abi_nav.lat_deg[idx] == 44.73149490356445
-    assert abi_nav.lon_deg[idx] == -93.01798248291016
+    assert meso_nav.lat_deg.dtype == np.float32
+    assert meso_nav.lon_deg.dtype == np.float32
+    assert meso_nav.lat_deg[idx] == 44.73149490356445
+    assert meso_nav.lon_deg[idx] == -93.01798248291016
 
-    assert abi_nav.area_m.dtype == np.float32
-    assert abi_nav.area_m[idx] == 4398247.5
+    assert meso_nav.area_m.dtype == np.float32
+    assert meso_nav.area_m[idx] == 4398247.5
 
-    assert abi_nav.sat_za.dtype == np.float32
-    assert abi_nav.sat_az.dtype == np.float32
-    assert abi_nav.sat_za[idx] == 0.9509874582290649
-    assert abi_nav.sat_az[idx] == 2.7129034996032715
+    assert meso_nav.sat_za.dtype == np.float32
+    assert meso_nav.sat_az.dtype == np.float32
+    assert meso_nav.sat_za[idx] == 0.9509874582290649
+    assert meso_nav.sat_az[idx] == 2.7129034996032715
 
-    assert abi_nav.sun_za.dtype == np.float32
-    assert abi_nav.sun_az.dtype == np.float32
-    assert abi_nav.sun_za[idx] == 0.4886804521083832
-    assert abi_nav.sun_az[idx] == 3.9760777950286865
+    assert meso_nav.sun_za.dtype == np.float32
+    assert meso_nav.sun_az.dtype == np.float32
+    assert meso_nav.sun_za[idx] == 0.4886804521083832
+    assert meso_nav.sun_az[idx] == 3.9760777950286865
 
     # test on astropy sun
-    abi_nav = navigation.ABINavigation(abi_data, index=idx, precise_sun=True)
+    meso_nav = navigation.ABINavigation(meso_data, index=idx, precise_sun=True)
 
-    assert abi_nav.sun_za.dtype == np.float32
-    assert abi_nav.sun_az.dtype == np.float32
-    assert abi_nav.sun_za[0] == 0.4887488782405853
-    assert abi_nav.sun_az[0] == 3.976273775100708
+    assert meso_nav.sun_za.dtype == np.float32
+    assert meso_nav.sun_az.dtype == np.float32
+    assert meso_nav.sun_za[0] == 0.4887488782405853
+    assert meso_nav.sun_az[0] == 3.976273775100708
 
     # test with height correction
-    abi_nav = navigation.ABINavigation(abi_data, precise_sun=False, hae_m=1.2345678)
+    meso_nav = navigation.ABINavigation(meso_data, precise_sun=False, hae_m=1.2345678)
 
-    assert abi_nav.lat_deg.dtype == np.float32
-    assert abi_nav.lon_deg.dtype == np.float32
-    assert abi_nav.lat_deg[idx] == 44.73153305053711
-    assert abi_nav.lon_deg[idx] == -93.01801300048828
+    assert meso_nav.lat_deg.dtype == np.float32
+    assert meso_nav.lon_deg.dtype == np.float32
+    assert meso_nav.lat_deg[idx] == 44.73153305053711
+    assert meso_nav.lon_deg[idx] == -93.01801300048828
 
-    assert abi_nav.area_m.dtype == np.float32
-    assert abi_nav.area_m[idx] == 4398248.0
+    assert meso_nav.area_m.dtype == np.float32
+    assert meso_nav.area_m[idx] == 4398248.0
 
-    assert abi_nav.sat_za.dtype == np.float32
-    assert abi_nav.sat_az.dtype == np.float32
-    assert abi_nav.sat_za[idx] == 0.9509882926940918
-    assert abi_nav.sat_az[idx] == 2.7129032611846924
+    assert meso_nav.sat_za.dtype == np.float32
+    assert meso_nav.sat_az.dtype == np.float32
+    assert meso_nav.sat_za[idx] == 0.9509882926940918
+    assert meso_nav.sat_az[idx] == 2.7129032611846924
 
-    assert abi_nav.sun_za.dtype == np.float32
-    assert abi_nav.sun_az.dtype == np.float32
-    assert abi_nav.sun_za[idx] == 0.4886806607246399
-    assert abi_nav.sun_az[idx] == 3.976076126098633
+    assert meso_nav.sun_za.dtype == np.float32
+    assert meso_nav.sun_az.dtype == np.float32
+    assert meso_nav.sun_za[idx] == 0.4886806607246399
+    assert meso_nav.sun_az[idx] == 3.976076126098633
 
     # test with astropy sun and height correction
-    abi_nav = navigation.ABINavigation(
-        abi_data, index=idx, precise_sun=True, hae_m=1.2345678
+    meso_nav = navigation.ABINavigation(
+        meso_data, index=idx, precise_sun=True, hae_m=1.2345678
     )
 
-    assert abi_nav.sun_za.dtype == np.float32
-    assert abi_nav.sun_az.dtype == np.float32
-    assert abi_nav.sun_za[0] == 0.48874911665916443
-    assert abi_nav.sun_az[0] == 3.9762721061706543
+    assert meso_nav.sun_za.dtype == np.float32
+    assert meso_nav.sun_az.dtype == np.float32
+    assert meso_nav.sun_za[0] == 0.48874911665916443
+    assert meso_nav.sun_az[0] == 3.9762721061706543
 
-    # test on a navigation dataset that does not contain NaNs (G16 meso)
-    abi_nav = navigation.ABINavigation(
-        abi_data, lat_deg=44.72609499, lon_deg=-93.02279070
+    # test single-point indexing on a navigation dataset that does not contain NaNs (G16 meso)
+    meso_nav = navigation.ABINavigation(
+        meso_data, lat_bounds=44.72609499, lon_bounds=-93.02279070
     )
-    assert abi_nav.index == idx
+    assert meso_nav.index == idx
 
-    # test retrieving indices fron multiple points
-    abi_nav = navigation.ABINavigation(
-        abi_data,
-        lat_deg=np.array(
-            [
-                [44.73149490356445, 44.73029708862305],
-                [44.70037841796875, 44.699180603027344],
-            ],
-            dtype=np.float32,
-        ),
-        lon_deg=np.array(
-            [
-                [-93.01798248291016, -92.98883819580078],
-                [-93.00658416748047, -92.97746276855469],
-            ],
-            dtype=np.float32,
-        ),
+    # test single-point indexing on a navigation dataset that contains NaNs (G16 CONUS)
+    conus_data = load(abi_cc07_nc)
+    conus_nav = navigation.ABINavigation(
+        conus_data, lat_bounds=44.72609499, lon_bounds=-93.02279070
     )
-    assert abi_nav.index == np.s_[92:94, 42:44]
+    assert conus_nav.index == (192, 1152)
 
-    # test that the indices work
-    abi_nav2 = navigation.ABINavigation(
-        abi_data,
-        index=abi_nav.index,
-    )
-    assert (abi_nav2.lat_deg == abi_nav.lat_deg).all()
-    assert (abi_nav2.lon_deg == abi_nav.lon_deg).all()
 
-    # test on a navigation dataset that contains NaNs (G16 CONUS)
-    abi_data = load(abi_cc07_nc)
-    abi_nav = navigation.ABINavigation(
-        abi_data, lat_deg=44.72609499, lon_deg=-93.02279070
-    )
-    assert abi_nav.index == (192, 1152)
+def test_range_navigation():
+    # test meso
+    meso_data = load(abi_mc07_nc)
 
-    # test retrieving indices fron multiple points
-    abi_nav = navigation.ABINavigation(
-        abi_data,
-        lat_deg=np.array(
-            [
-                [44.73149871826172, 44.73030090332031],
-                [44.700382232666016, 44.699188232421875],
-            ],
-            dtype=np.float32,
-        ),
-        lon_deg=np.array(
-            [
-                [-93.01798248291016, -92.98883819580078],
-                [-93.006591796875, -92.97746276855469],
-            ],
-            dtype=np.float32,
-        ),
+    # test retrieving points from lat/lon bounds
+    lat_bounds = np.array(
+        [
+            44.731495,
+            44.602596,
+        ],
+        dtype=np.float32,
     )
-    assert abi_nav.index == np.s_[192:194, 1152:1154]
+    lon_bounds = np.array(
+        [
+            -93.01798,
+            -92.85648,
+        ],
+        dtype=np.float32,
+    )
+    meso_nav_bounded = navigation.ABINavigation(
+        meso_data, lat_bounds=lat_bounds, lon_bounds=lon_bounds, degrees=True
+    )
 
-    # test that the indices work
-    abi_nav2 = navigation.ABINavigation(
-        abi_data,
-        index=abi_nav.index,
+    # check index
+    assert meso_nav_bounded.index == np.s_[92:97, 42:47]
+
+    # check bounds
+    assert meso_nav_bounded.lat_deg[0, 0], (
+        meso_nav_bounded.lat_deg[-1, -1] == lat_bounds
     )
-    assert (abi_nav2.lat_deg == abi_nav.lat_deg).all()
-    assert (abi_nav2.lon_deg == abi_nav.lon_deg).all()
+    assert meso_nav_bounded.lon_deg[0, 0], (
+        meso_nav_bounded.lon_deg[-1, -1] == lon_bounds
+    )
+
+    # another nav object using the same derived index should have the same gridded data
+    meso_nav_indexed = navigation.ABINavigation(
+        meso_data, index=meso_nav_bounded.index, degrees=True
+    )
+    for i in ["lat_deg", "lon_deg", "sat_za", "sat_az", "sun_za", "sun_az", "area_m"]:
+        assert (getattr(meso_nav_indexed, i) == getattr(meso_nav_bounded, i)).all()
+
+    # test conus
+    conus_data = load(abi_cc07_nc)
+
+    # test retrieving points fron multiple lat/lon
+    lat_bounds = np.array(
+        [
+            [44.7315, 44.7303, 44.729107, 44.727917, 44.726727],
+            [44.700382, 44.69919, 44.697994, 44.696804, 44.695618],
+            [44.669365, 44.668175, 44.666985, 44.6658, 44.66461],
+            [44.638294, 44.637104, 44.635918, 44.63473, 44.63355],
+            [44.60733, 44.606144, 44.60496, 44.60378, 44.602596],
+        ],
+        dtype=np.float32,
+    )
+    lon_bounds = np.array(
+        [
+            [-93.01798, -92.98884, -92.9597, -92.93057, -92.90145],
+            [-93.00659, -92.97746, -92.94835, -92.91924, -92.890144],
+            [-92.99527, -92.96617, -92.93707, -92.90799, -92.878914],
+            [-92.98393, -92.95485, -92.92577, -92.89671, -92.86766],
+            [-92.97267, -92.94361, -92.91456, -92.88552, -92.85648],
+        ],
+        dtype=np.float32,
+    )
+    conus_nav_bounded = navigation.ABINavigation(
+        conus_data, lat_bounds=lat_bounds, lon_bounds=lon_bounds, degrees=True
+    )
+
+    # check index
+    assert conus_nav_bounded.index == np.s_[192:197, 1152:1157]
+
+    # check bounds
+    assert (conus_nav_bounded.lat_deg == lat_bounds).all()
+    assert (conus_nav_bounded.lon_deg == lon_bounds).all()
+
+    # another nav object using the same derived index should have the same gridded data
+    conus_nav_indexed = navigation.ABINavigation(
+        conus_data, index=conus_nav_bounded.index, degrees=True
+    )
+    for i in ["lat_deg", "lon_deg", "sat_za", "sat_az", "sun_za", "sun_az", "area_m"]:
+        assert (getattr(conus_nav_indexed, i) == getattr(conus_nav_bounded, i)).all()
+
+    # meso and conus nav reference the same area, the time-invariant gridded data should match within tolerance
+    assert (
+        conus_nav_bounded.lat_deg - meso_nav_bounded.lat_deg < epsilon_degrees
+    ).all()
+    assert (
+        conus_nav_bounded.lon_deg - meso_nav_bounded.lon_deg < epsilon_degrees
+    ).all()
+    assert (conus_nav_bounded.sat_za - meso_nav_bounded.sat_za < epsilon_degrees).all()
+    assert (conus_nav_bounded.sat_az - meso_nav_bounded.sat_az < epsilon_degrees).all()
+    assert (conus_nav_bounded.area_m - meso_nav_bounded.area_m < epsilon_meters).all()
 
 
 def test_ancillary():
     slc = np.s_[250:1250, 500:2000]
-
     abi_data = load(abi_cc07_nc)
-    water = ancillary.WaterMask(abi_data, index=slc, rivers=True)
 
-    assert water.data["water_mask"].dtype == bool
-    assert water.data["water_mask"].shape == (
-        1000,
-        1500,
+    # test water mask
+    water_indexed = ancillary.WaterMask(abi_data, index=slc, rivers=True)
+    water_bounded = ancillary.WaterMask(
+        abi_data,
+        lat_bounds=np.array([44.224377, 19.44], dtype=np.float32),
+        lon_bounds=np.array([-113.55036, -71.337036], dtype=np.float32),
+        rivers=True,
     )
 
-    water.save(save_dir=output_dir)
-    cv2.imwrite(str(output_dir.joinpath("water.png")), water.data["water_mask"] * 255)
+    assert (
+        water_indexed.data["water_mask"].dtype
+        == water_bounded.data["water_mask"].dtype
+        == bool
+    )
+    assert (
+        water_indexed.data["water_mask"].shape
+        == water_bounded.data["water_mask"].shape
+        == (
+            1000,
+            1500,
+        )
+    )
+    assert (water_indexed.data["water_mask"] == water_bounded.data["water_mask"]).all()
 
-    iremis = ancillary.IREMIS(abi_data, index=slc)
-
-    assert iremis.data["c07_land_emissivity"].dtype == np.float32
-    assert iremis.data["c07_land_emissivity"].shape == (
-        1000,
-        1500,
+    water_bounded.save(save_dir=output_dir)
+    cv2.imwrite(
+        str(output_dir.joinpath("water.png")), water_bounded.data["water_mask"] * 255
     )
 
-    iremis.save(save_dir=output_dir)
+    # test IREMIS
+    iremis_indexed = ancillary.IREMIS(abi_data, index=slc)
+    iremis_bounded = ancillary.IREMIS(
+        abi_data,
+        lat_bounds=np.array([44.224377, 19.44], dtype=np.float32),
+        lon_bounds=np.array([-113.55036, -71.337036], dtype=np.float32),
+    )
+
+    assert (
+        iremis_indexed.data["c07_land_emissivity"].dtype
+        == iremis_bounded.data["c07_land_emissivity"].dtype
+        == np.float32
+    )
+    assert (
+        iremis_indexed.data["c07_land_emissivity"].shape
+        == iremis_bounded.data["c07_land_emissivity"].shape
+        == (
+            1000,
+            1500,
+        )
+    )
+    assert (
+        iremis_indexed.data["c07_land_emissivity"]
+        == iremis_bounded.data["c07_land_emissivity"]
+    ).all()
+    assert (
+        iremis_indexed.data["c14_land_emissivity"]
+        == iremis_bounded.data["c14_land_emissivity"]
+    ).all()
+
+    iremis_bounded.save(save_dir=output_dir)
     cv2.imwrite(
         str(output_dir.joinpath("iremis.png")),
-        minmax(iremis.data["c07_land_emissivity"]) * 255,
+        minmax(iremis_bounded.data["c07_land_emissivity"]) * 255,
     )
 
 

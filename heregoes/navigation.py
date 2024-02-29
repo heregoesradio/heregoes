@@ -18,19 +18,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+
 import astropy.units as u
 import numpy as np
 from astropy import coordinates
 from astropy.time import Time
 
+from heregoes import exceptions
 from heregoes.util import nearest_2d, njit, orbital, rad2deg
+
+logger = logging.getLogger("heregoes-logger")
 
 
 class ABINavigation:
     """
     This is a class for GOES-R ABI navigation routines using an ABIObject to access netCDF data.
-    The routines may be constrained to a single index or continuous slice of the ABI Fixed Grid with `index`, or to a single area by providing `lat_deg` and `lon_deg` (degrees).
-    All calculations return 32-bit floating point NumPy arrays which should be accurate enough for most applications at this scale.
+    The routines may be constrained to a single index or continuous slice of the ABI Fixed Grid with `index`, or to a single area by providing `lat_bounds` and `lon_bounds` (degrees).
+    All calculations return 32-bit floating point NumPy arrays which should be accurate enough for most applications at ABI scale.
 
     The following quantities are always generated upon instantiation:
         - Instrument scanning angle (`y_rad`, `x_rad`)
@@ -44,6 +49,8 @@ class ABINavigation:
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
+        - `index`: Optionally constrains the navigation routines to an array index or continuous slice on the ABI Fixed Grid
+        - `lat_bounds`, `lon_bounds`: Optionally constrains the navigation routines to a latitude and longitude bounding box defined by the upper left and lower right points, e.g. `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
         - `hae_m`: The Height Above Ellipsoid (HAE) in meters of the ABI array to correct for terrain height. Default 0.0 (no correction)
         - `time`: The time for which the Sun position is valid. The product midpoint time is used if not provided
         - `precise_sun`: Whether to calculate solar position using Equation of Time with Pyorbital (`False`, default) or real ephemeris with Astropy (`True`)
@@ -54,8 +61,8 @@ class ABINavigation:
         self,
         abi_data,
         index=None,
-        lat_deg=None,
-        lon_deg=None,
+        lat_bounds=None,
+        lon_bounds=None,
         hae_m=0.0,
         time=None,
         precise_sun=False,
@@ -77,12 +84,15 @@ class ABINavigation:
         if self.index is None:
             self.index = np.s_[:, :]
 
+        if self.time is None:
+            self.time = self.abi_data.midpoint_time
+
         self.x_rad, self.y_rad = np.meshgrid(
             self.abi_data["x"][self.index[1]],
             self.abi_data["y"][self.index[0]],
         )
 
-        if lat_deg is None or lon_deg is None:
+        if lat_bounds is None or lon_bounds is None:
             self.lat_deg, self.lon_deg = self.navigate(
                 self.y_rad,
                 self.x_rad,
@@ -95,9 +105,6 @@ class ABINavigation:
                     "goes_imager_projection"
                 ].perspective_point_height,
             )
-
-            if self.hae_m.shape != self.lat_deg.shape:
-                self.hae_m = np.full(self.lat_deg.shape, self.hae_m, dtype=np.float32)
 
             # correct for terrain parallax if HAE is provided
             if (self.hae_m != 0.0).any():
@@ -112,7 +119,7 @@ class ABINavigation:
                     sat_height=self.abi_data[
                         "goes_imager_projection"
                     ].perspective_point_height,
-                    feature_height=self.hae_m,
+                    feature_height=np.broadcast_to(self.hae_m, self.lat_deg.shape),
                 )
                 self.lat_deg, self.lon_deg = self.navigate(
                     self.y_rad,
@@ -128,12 +135,32 @@ class ABINavigation:
                 )
 
         else:
-            self.lat_deg = np.atleast_1d(lat_deg)
-            self.lon_deg = np.atleast_1d(lon_deg)
+            lat_bounds = np.atleast_1d(lat_bounds).astype(np.float32)
+            lon_bounds = np.atleast_1d(lon_bounds).astype(np.float32)
+
+            if lat_bounds.shape != lon_bounds.shape:
+                raise exceptions.HereGOESValueError(
+                    msg="`lat_bounds` and `lon_bounds` must be the same shape.",
+                    caller=f"{__name__}.{self.__class__.__name__}",
+                )
+
+            if np.isnan(lat_bounds).any() | np.isnan(lon_bounds).any():
+                logger.warning(
+                    "Provided lat/lon bounds contain NaN; check bounds for off-Earth pixels.",
+                    extra={"caller": f"{__name__}.{self.__class__.__name__}"},
+                )
+
+            # this is tricky to deal with because of Numba broadcasting issues, and the desired shape of hae_m being unknown at this step when using lat/lon bounds
+            # related: https://github.com/numba/numba/issues/4632
+            if (self.hae_m != 0.0).any():
+                logger.warning(
+                    "Terrain height correction is not currently supported when `lat_bounds` and `lon_bounds` are specified; ignoring argument `hae_m`.",
+                    extra={"caller": f"{__name__}.{self.__class__.__name__}"},
+                )
 
             derived_y_rad, derived_x_rad = self.reverse_navigate(
-                self.lat_deg,
-                self.lon_deg,
+                lat_bounds,
+                lon_bounds,
                 lon_origin=self.abi_data[
                     "goes_imager_projection"
                 ].longitude_of_projection_origin,
@@ -142,27 +169,33 @@ class ABINavigation:
                 sat_height=self.abi_data[
                     "goes_imager_projection"
                 ].perspective_point_height,
-                feature_height=self.hae_m,
+                feature_height=np.broadcast_to(
+                    np.atleast_1d(0.0).astype(np.float32), lat_bounds.shape
+                ),
             )
+
             self.index = nearest_2d(
                 self.y_rad, self.x_rad, derived_y_rad, derived_x_rad
             )
 
-            # form a tuple of slices to encompass a continuous range
-            if len(self.index[0]) > 1 or len(self.index[1]) > 1:
-                self.index = tuple(
-                    slice(idx.T.min(), idx.T.max() + 1) for idx in self.index
-                )
+            self.y_rad = np.atleast_1d(self.y_rad[self.index]).astype(np.float32)
+            self.x_rad = np.atleast_1d(self.x_rad[self.index]).astype(np.float32)
 
-            # or form a single tuple index
-            else:
-                self.index = (self.index[0].item(), self.index[1].item())
+            self.lat_deg, self.lon_deg = self.navigate(
+                self.y_rad,
+                self.x_rad,
+                lon_origin=self.abi_data[
+                    "goes_imager_projection"
+                ].longitude_of_projection_origin,
+                r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
+                r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
+                sat_height=self.abi_data[
+                    "goes_imager_projection"
+                ].perspective_point_height,
+            )
 
-            self.y_rad = derived_y_rad
-            self.x_rad = derived_x_rad
-
-        if self.time is None:
-            self.time = self.abi_data.midpoint_time
+            if self.hae_m.shape != self.lat_deg.shape:
+                self.hae_m = np.broadcast_to(self.hae_m, self.lat_deg.shape)
 
     @property
     def sat_za(self):

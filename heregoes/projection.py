@@ -27,7 +27,7 @@ from osgeo import gdal
 
 gdal.UseExceptions()
 
-from heregoes import NUM_CPUS
+from heregoes import NUM_CPUS, navigation
 
 GDAL_PARALLEL = False
 if os.getenv("HEREGOES_ENV_PARALLEL", "False").lower() == "true":
@@ -40,7 +40,9 @@ class ABIProjection:
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
-        - `index`: Optionally constrains the projection to an index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
+        - `index`: Optionally constrains the projection to an array index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
+        - `lat_bounds`, `lon_bounds`: Optionally constrains the projection to a latitude and longitude bounding box defined by the upper left and lower right points, e.g. `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+            - When projecting to or from a subset of an ABI image, the `index` of the image is preferred to using `lat_bounds` and `lon_bounds` to ensure the image bounds match exactly on the ABI Fixed Grid
 
     Class methods:
         - `resample2abi(latlon_array)` resamples an array with WGS84 lat/lon projection to the ABI Fixed Grid domain. Returns the resampled array if convert_np is `True` (default), otherwise returns the GDAL dataset
@@ -48,11 +50,21 @@ class ABIProjection:
         - `resample2cog(abi_array, cog_filepath)` resamples an ABI array from the ABI Fixed Grid domain to WGS84 lat/lon projection and saves to a Cloud Optimized GeoTIFF (COG) at the filepath `cog_filepath`
     """
 
-    def __init__(self, abi_data, index=None):
+    def __init__(self, abi_data, index=None, lat_bounds=None, lon_bounds=None):
         self.abi_data = abi_data
         self.index = index
 
-        if self.index is None:
+        if lat_bounds is not None and lon_bounds is not None:
+            self.abi_nav = navigation.ABINavigation(
+                self.abi_data,
+                lat_bounds=np.atleast_1d(lat_bounds),
+                lon_bounds=np.atleast_1d(lon_bounds),
+            )
+            self.index = self.abi_nav.index
+            self.lat_deg = self.abi_nav.lat_deg
+            self.lon_deg = self.abi_nav.lon_deg
+
+        elif self.index is None:
             self.index = np.s_[:, :]
 
         h = self.abi_data["goes_imager_projection"].perspective_point_height
@@ -183,15 +195,19 @@ class ABIProjection:
     def resample2abi(
         self,
         latlon_array,
-        latlon_bounds=[-180.0, 90.0, 180.0, -90.0],
+        lat_bounds=[90.0, -90.0],
+        lon_bounds=[-180.0, 180.0],
         interpolation="nearest",
         convert_np=True,
     ):
+        ul_y, lr_y = lat_bounds
+        ul_x, lr_x = lon_bounds
+
         ds = self._make_dataset(latlon_array)
 
         translate_options = gdal.TranslateOptions(
             outputSRS=self.latlon_srs,
-            outputBounds=latlon_bounds,
+            outputBounds=[ul_x, ul_y, lr_x, lr_y],
             format=self._intermediate_format,
             resampleAlg=interpolation.lower(),
             creationOptions=self._intermediate_gdal_options,

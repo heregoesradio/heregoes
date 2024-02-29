@@ -29,9 +29,9 @@ import numpy as np
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
 from scipy import ndimage
 
-from heregoes import exceptions, load
+from heregoes import exceptions, load, navigation
 from heregoes.goesr import abi, suvi
-from heregoes.util import make_8bit, scale_idx
+from heregoes.util import align_idx, make_8bit, scale_idx
 
 logger = logging.getLogger("heregoes-logger")
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
@@ -84,6 +84,8 @@ class ABIImage(Image):
         self,
         abi_nc,
         index=None,
+        lat_bounds=None,
+        lon_bounds=None,
         gamma=1.0,
         black_space=False,
     ):
@@ -101,7 +103,8 @@ class ABIImage(Image):
 
         Arguments:
             - `abi_nc`: String or Path object pointing to a GOES-R ABI L1b Radiance netCDF file
-            - `index`: Optionally constrains the ABI image to an index or continuous slice on the ABI Fixed Grid matching the resolution in the provided `abi_nc` file
+            - `index`: Optionally constrains the ABI image to an array index or continuous slice on the ABI Fixed Grid matching the resolution in the provided `abi_nc` file
+            - `lat_bounds`, `lon_bounds`: Optionally constrains the ABI image to a latitude and longitude bounding box defined by the upper left and lower right points, e.g. `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
             - `gamma`: Optional gamma correction for reflective ABI brightness value. Defaults to no correction
             - `black_space`: Optionally overwrites the masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `True`
         """
@@ -115,7 +118,17 @@ class ABIImage(Image):
 
         self.abi_data = load(abi_nc)
 
-        if self.index is None:
+        if lat_bounds is not None and lon_bounds is not None:
+            self.abi_nav = navigation.ABINavigation(
+                self.abi_data,
+                lat_bounds=np.atleast_1d(lat_bounds),
+                lon_bounds=np.atleast_1d(lon_bounds),
+            )
+            self.index = self.abi_nav.index
+            self.lat_deg = self.abi_nav.lat_deg
+            self.lon_deg = self.abi_nav.lon_deg
+
+        elif self.index is None:
             self.index = np.s_[:, :]
 
         self.rad = self.abi_data["Rad"][self.index]
@@ -198,6 +211,8 @@ class ABINaturalRGB(Image):
         green_nc,
         blue_nc,
         index=None,
+        lat_bounds=None,
+        lon_bounds=None,
         r_coeff=0.45,
         g_coeff=0.1,
         b_coeff=0.45,
@@ -211,7 +226,8 @@ class ABINaturalRGB(Image):
 
         Arguments:
             - `red_nc`, `green_nc`, `blue_nc`: Strings or Path objects pointing to GOES-R ABI L1b Radiance netCDF files for the red (0.64 μm), green (0.86 μm), and blue (0.47 μm) components
-            - `index`: Optionally constrains the ABI imagery to an index or continuous slice on the ABI Fixed Grid. If `upscale` is `False` (default), this is an index on the 1 km Fixed Grid. Otherwise, if `upscale` is `True`, a 500 m Fixed Grid is used
+            - `index`: Optionally constrains the ABI imagery to an array index or continuous slice on the ABI Fixed Grid. If `upscale` is `False` (default), this is an index on the 1 km Fixed Grid. Otherwise, if `upscale` is `True`, a 500 m Fixed Grid is used
+            - `lat_bounds`, `lon_bounds`: Optionally constrains the ABI imagery to a latitude and longitude bounding box defined by the upper left and lower right points, e.g. `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
             - `r_coeff`, `g_coeff`, `b_coeff`: Coefficients for the fractional combination "green" band method described in Bah et. al (2018)
             - `upscale`: Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
             - `upscale_algo`: The OpenCV interpolation algorithm used for upscaling green and blue images. See https://docs.opencv.org/4.6.0/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121. Default `cv2.INTER_CUBIC`
@@ -222,16 +238,41 @@ class ABINaturalRGB(Image):
         super().__init__()
         self.index = index
 
-        if self.index is None:
-            self.index = np.s_[:, :]
-
         if upscale:
+            nav_nc = red_nc
             scaler_500m = 1.0
             scaler_1km = 2.0
 
         else:
+            nav_nc = green_nc
             scaler_500m = 0.5
             scaler_1km = 1.0
+
+        if lat_bounds is not None and lon_bounds is not None:
+            self.abi_nav = navigation.ABINavigation(
+                load(nav_nc),
+                lat_bounds=np.atleast_1d(lat_bounds),
+                lon_bounds=np.atleast_1d(lon_bounds),
+            )
+            self.index = self.abi_nav.index
+            self.lat_deg = self.abi_nav.lat_deg
+            self.lon_deg = self.abi_nav.lon_deg
+
+        elif self.index is None:
+            self.index = np.s_[:, :]
+
+        if upscale:
+            aligned_idx = align_idx(self.index, 2)
+            if self.index != aligned_idx:
+                # only warn for index alignment if index was provided
+                if lat_bounds is None or lon_bounds is None:
+                    logger.warning(
+                        "Adjusting provided index %s to %s to align to the 1 km ABI Fixed Grid.",
+                        str(self.index),
+                        str(aligned_idx),
+                        extra={"caller": f"{__name__}.{self.__class__.__name__}"},
+                    )
+                self.index = aligned_idx
 
         # make images
         red_image = ABIImage(

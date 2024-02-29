@@ -76,10 +76,49 @@ def x4(arr):
     return nearest_scale(arr, k=4)
 
 
+def align_idx(idx, modulus):
+    """
+    Aligns an array index or continuous slice `idx` to the closest index modulo `modulus`.
+    Useful for aligning indices between different spatial resolutions, e.g. aligning a 500 m index to the 1 km ABI Fixed Grid with a `modulus` of 2, or to the 2 km Fixed Grid with a `modulus` of 4.
+    """
+
+    def safe_align(value, modulus):
+        if value is None or value is Ellipsis:
+            return value
+
+        else:
+            i = value - (value % modulus)
+            j = (value + modulus) - (value % modulus)
+
+            if j - value < value - i:
+                return int(j)
+
+            else:
+                return int(i)
+
+    def slice_align(slc, modulus):
+        start = safe_align(slc.start, modulus)
+        stop = safe_align(slc.stop, modulus)
+
+        return np.s_[start:stop:None]
+
+    aligned_idx = []
+    for i in tuple(idx):
+        if isinstance(i, slice):
+            slc = slice_align(i, modulus)
+
+        else:
+            slc = safe_align(i, modulus)
+
+        aligned_idx.append(slc)
+
+    return tuple(aligned_idx)
+
+
 def scale_idx(idx, scale_factor):
     """
-    Adjusts an array index or slice by `scale_factor`.
-    Useful for referencing the same point between different spatial resolutions, e.g. converting a 500 m index for use with a 2 km product using a scale factor of 0.25.
+    Adjusts an array index or continous slice `idx` by `scale_factor`.
+    Useful for referencing the same point between different spatial resolutions, e.g. converting a 500 m index for use with a 2 km product using a `scale_factor` of 0.25.
     """
 
     def safe_floor(value):
@@ -92,19 +131,20 @@ def scale_idx(idx, scale_factor):
     def slice_floor(slc):
         start = safe_floor(slc.start)
         stop = safe_floor(slc.stop)
-        step = safe_floor(slc.step)
 
-        return np.s_[start:stop:step]
+        return np.s_[start:stop:None]
 
     idx = np.s_[idx]
 
     scaled_idx = []
     for i in tuple(idx):
         if isinstance(i, slice):
-            scaled_idx.append(slice_floor(i))
+            slc = slice_floor(i)
 
         else:
-            scaled_idx.append(safe_floor(i))
+            slc = safe_floor(i)
+
+        scaled_idx.append(slc)
 
     return tuple(scaled_idx)
 
@@ -240,7 +280,6 @@ def unravel_index(index, shape):
     return to_fixed_tuple(result, len(shape))
 
 
-@njit.heregoes_njit_noparallel
 def nearest_2d(y_arr, x_arr, target_y, target_x):
     """
     Finds the nearest index of a value simultaneously for two arrays `y_arr` and `x_arr` of the same shape.
@@ -248,35 +287,51 @@ def nearest_2d(y_arr, x_arr, target_y, target_x):
     Adapted from: https://github.com/blaylockbk/pyBKB_v3/blob/master/demo/Nearest_lat-lon_Grid.ipynb (MIT)
     """
 
-    if y_arr.shape != x_arr.shape:
-        return
+    @njit.heregoes_njit_noparallel
+    def _nearest_2d(y_arr, x_arr, target_y, target_x):
+        if y_arr.shape != x_arr.shape:
+            return
 
-    if np.isnan(y_arr).any() | np.isnan(x_arr).any():
-        y_arr = y_arr.copy()
-        x_arr = x_arr.copy()
+        if np.isnan(y_arr).any() | np.isnan(x_arr).any():
+            y_arr = y_arr.copy()
+            x_arr = x_arr.copy()
 
-        y_arr.ravel()[np.nonzero(np.isnan(y_arr.ravel()))] = np.inf
-        x_arr.ravel()[np.nonzero(np.isnan(x_arr.ravel()))] = np.inf
+            y_arr.ravel()[np.nonzero(np.isnan(y_arr.ravel()))] = np.inf
+            x_arr.ravel()[np.nonzero(np.isnan(x_arr.ravel()))] = np.inf
 
-    nearest_ys = np.zeros(target_y.ravel().shape, dtype=np.int64)
-    nearest_xs = np.zeros(target_x.ravel().shape, dtype=np.int64)
+        nearest_ys = np.zeros(target_y.ravel().shape, dtype=np.int64)
+        nearest_xs = np.zeros(target_x.ravel().shape, dtype=np.int64)
 
-    flatidx = 0
-    for idx, val in np.ndenumerate(target_y):
-        nearest_y, nearest_x = unravel_index(
-            int(
-                np.argmin(
-                    np.maximum(
-                        np.abs(y_arr - target_y[idx]), np.abs(x_arr - target_x[idx])
+        flatidx = 0
+        for idx, val in np.ndenumerate(target_y):
+            nearest_y, nearest_x = unravel_index(
+                int(
+                    np.argmin(
+                        np.maximum(
+                            np.abs(y_arr - target_y[idx]), np.abs(x_arr - target_x[idx])
+                        )
                     )
-                )
-            ),
-            y_arr.shape,
+                ),
+                y_arr.shape,
+            )
+
+            nearest_ys[flatidx] = nearest_y
+            nearest_xs[flatidx] = nearest_x
+
+            flatidx += 1
+
+        return (nearest_ys, nearest_xs)
+
+    nearest_indices = _nearest_2d(y_arr, x_arr, target_y, target_x)
+
+    # form a tuple of slices to encompass a continuous range
+    if len(nearest_indices[0]) > 1 or len(nearest_indices[1]) > 1:
+        nearest_indices = tuple(
+            slice(idx.T.min(), idx.T.max() + 1) for idx in nearest_indices
         )
 
-        nearest_ys[flatidx] = nearest_y
-        nearest_xs[flatidx] = nearest_x
+    # or form a single tuple index
+    else:
+        nearest_indices = (nearest_indices[0].item(), nearest_indices[1].item())
 
-        flatidx += 1
-
-    return (nearest_ys, nearest_xs)
+    return nearest_indices

@@ -34,22 +34,30 @@ logger.addHandler(handler)
 
 
 class HereGOESException(Exception):
-    def __init__(self, caller, msg, exception=None):
+    def __init__(self, msg="", caller=None, exception=None):
         if exception is not None:
             msg += f" Exception: {exception}"
-        logger.critical(msg, extra={"caller": caller})
+        if len(msg) > 0:
+            logger.critical(msg, extra={"caller": caller})
         super().__init__(msg)
+
+    def __str__(self):
+        return self.__class__.__qualname__
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class HereGOESIOError(HereGOESException):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class HereGOESIOReadException(HereGOESIOError):
     def __init__(self, caller, filepath, exception=None):
         super().__init__(
-            caller=caller,
             msg=f"Could not read from file at {filepath}.",
+            caller=caller,
             exception=exception,
         )
 
@@ -57,20 +65,21 @@ class HereGOESIOReadException(HereGOESIOError):
 class HereGOESIOWriteException(HereGOESIOError):
     def __init__(self, caller, filepath, exception=None):
         super().__init__(
-            caller=caller,
             msg=f"Could not write to file at {filepath}.",
+            caller=caller,
             exception=exception,
         )
 
 
 class HereGOESValueError(HereGOESException):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
 
 class HereGOESUnsupportedProductException(HereGOESValueError):
     def __init__(self, caller, filepath, exception=None):
         super().__init__(
-            caller=caller,
             msg=f"Product type is not supported: {filepath}.",
+            caller=caller,
             exception=exception,
         )

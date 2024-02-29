@@ -104,20 +104,25 @@ class IREMIS(AncillaryDataset):
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
-        - `index`: Optionally constrains the IREMIS dataset to an index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
+        - `index`: Optionally constrains the IREMIS dataset to an array index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
+        - `lat_bounds`, `lon_bounds`: Optionally constrains the IREMIS dataset to a latitude and longitude bounding box defined by the upper left and lower right points, e.g. `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
         - `iremis_dir`: Location of IREMIS netCDF files. Defaults to the directory set by the HEREGOES_ENV_IREMIS_DIR environmental variable
     """
 
-    def __init__(self, abi_data, index=None, iremis_dir=IREMIS_DIR):
+    def __init__(
+        self,
+        abi_data,
+        index=None,
+        lat_bounds=None,
+        lon_bounds=None,
+        iremis_dir=IREMIS_DIR,
+    ):
         super().__init__()
 
         self.abi_data = abi_data
         self.index = index
         month = self.abi_data.time_coverage_start.month
         self.dataset_name = "iremis_month" + str(month).zfill(2)
-
-        if self.index is None:
-            self.index = np.s_[:, :]
 
         try:
             iremis_dir = Path(iremis_dir)
@@ -127,6 +132,19 @@ class IREMIS(AncillaryDataset):
                 filepath=iremis_dir,
                 exception=e,
             )
+
+        if lat_bounds is not None and lon_bounds is not None:
+            self.abi_nav = navigation.ABINavigation(
+                self.abi_data,
+                lat_bounds=np.atleast_1d(lat_bounds),
+                lon_bounds=np.atleast_1d(lon_bounds),
+            )
+            self.index = self.abi_nav.index
+            self.lat_deg = self.abi_nav.lat_deg
+            self.lon_deg = self.abi_nav.lon_deg
+
+        elif self.index is None:
+            self.index = np.s_[:, :]
 
         iremis_locations_nc = iremis_dir.joinpath("global_emis_inf10_location.nc")
         iremis_months = [
@@ -189,12 +207,14 @@ class IREMIS(AncillaryDataset):
         abi_projection = projection.ABIProjection(self.abi_data, index=self.index)
         self.data["c07_land_emissivity"] = abi_projection.resample2abi(
             self.data["c07_land_emissivity"],
-            latlon_bounds=[iremis_ul_lon, iremis_ul_lat, iremis_lr_lon, iremis_lr_lat],
+            lat_bounds=[iremis_ul_lat, iremis_lr_lat],
+            lon_bounds=[iremis_ul_lon, iremis_lr_lon],
             interpolation="bilinear",
         )
         self.data["c14_land_emissivity"] = abi_projection.resample2abi(
             self.data["c14_land_emissivity"],
-            latlon_bounds=[iremis_ul_lon, iremis_ul_lat, iremis_lr_lon, iremis_lr_lat],
+            lat_bounds=[iremis_ul_lat, iremis_lr_lat],
+            lon_bounds=[iremis_ul_lon, iremis_lr_lon],
             interpolation="bilinear",
         )
 
@@ -209,7 +229,8 @@ class WaterMask(AncillaryDataset):
 
     Arguments:
         - `abi_data`: The ABIObject formed on a GOES-R ABI L1b Radiance netCDF file as returned by `heregoes.load()`
-        - `index`: Optionally constrains the GSHHS dataset to an index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
+        - `index`: Optionally constrains the GSHHS dataset to an array index or continuous slice on the ABI Fixed Grid matching the resolution of the provided `abi_data` object
+        - `lat_bounds`, `lon_bounds`: Optionally constrains the GSHHS dataset to a latitude and longitude bounding box defined by the upper left and lower right points, e.g. `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
         - `gshhs_scale`: 'auto', 'coarse', 'low', 'intermediate', 'high, or 'full' (https://scitools.org.uk/cartopy/docs/latest/reference/generated/cartopy.feature.GSHHSFeature.html)
         - `rivers`: Default `False`
     """
@@ -218,6 +239,8 @@ class WaterMask(AncillaryDataset):
         self,
         abi_data,
         index=None,
+        lat_bounds=None,
+        lon_bounds=None,
         gshhs_scale="intermediate",
         rivers=False,
     ):
@@ -227,7 +250,18 @@ class WaterMask(AncillaryDataset):
         self.index = index
         self.dataset_name = "gshhs_" + gshhs_scale
 
-        if self.index is None:
+        if lat_bounds is not None and lon_bounds is not None:
+            self.lat_deg = np.atleast_1d(lat_bounds)
+            self.lon_deg = np.atleast_1d(lon_bounds)
+
+            self.abi_nav = navigation.ABINavigation(
+                self.abi_data,
+                lat_bounds=self.lat_deg,
+                lon_bounds=self.lon_deg,
+            )
+            self.index = self.abi_nav.index
+
+        elif self.index is None:
             self.index = np.s_[:, :]
 
         y_rad = self.abi_data["y"][self.index[0]]
