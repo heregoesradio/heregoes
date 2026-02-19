@@ -192,6 +192,7 @@ class ABIProjection(ABINavigation):
         source_nodata: Optional[float] = None,
         target_nodata: Optional[float] = None,
     ):
+        # https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r
 
         intermediate_format = "GTiff"
         intermediate_gdal_options = ["COMPRESS=NONE"]
@@ -263,7 +264,7 @@ class ABIProjection(ABINavigation):
             outputSRS=srcSRS,
             outputBounds=translate_outputBounds,
             format=intermediate_format,
-            resampleAlg=resample_algo.lower(),
+            resampleAlg=None,
             creationOptions=intermediate_gdal_options,
             noData=source_nodata,
         )

@@ -81,6 +81,9 @@ class ABINavigation:
         - `index`:
             - The currently selected index or slice of the Fixed Grid. May be derived from geodetic coordinates if `lat_bounds` and `lon_bounds` are provided
 
+        - `nav_index`:
+            - The Fixed Grid index or slice used for navigation. Equal to `index` unless parallax correction occurred
+
         - `lat_deg`, `lon_deg`:
             - Geodetic coordinates navigated from Fixed Grid instrument scan angles
 
@@ -123,6 +126,7 @@ class ABINavigation:
         self._y_rad = None
         self._x_rad = None
         self._index = None
+        self._nav_index = None
         self._lat_deg = None
         self._lon_deg = None
         self._cross_track_m = None
@@ -217,12 +221,12 @@ class ABINavigation:
 
         # don't correct for parallax if no HAE is provided
         if (self.height_m == 0.0).all():
-            image_index = uncorrected_index
-            nav_index = uncorrected_index
+            self._index = uncorrected_index
+            self._nav_index = uncorrected_index
 
         # otherwise, either resample the navigation to fit the displaced image pixels,
         elif self.resample_nav:
-            image_index = uncorrected_index
+            self._index = uncorrected_index
 
             negative_corrected_y_rad, negative_corrected_x_rad = self._inverse_navigate(
                 lat_deg=self.lat_bounds,
@@ -232,14 +236,14 @@ class ABINavigation:
                     self.lat_bounds.shape,
                 ).astype(np.float32),
             )
-            nav_index = nearest_2d_search(
+            self._nav_index = nearest_2d_search(
                 self._y_rad,
                 self._x_rad,
                 negative_corrected_y_rad,
                 negative_corrected_x_rad,
             )
 
-        # or resample the index to fit the provided lat, lon, and height
+        # or resample the image index to fit the provided lat, lon, and height
         else:
             positive_corrected_y_rad, positive_corrected_x_rad = self._inverse_navigate(
                 lat_deg=self.lat_bounds,
@@ -249,46 +253,35 @@ class ABINavigation:
                     self.lat_bounds.shape,
                 ).astype(np.float32),
             )
-            image_index = nearest_2d_search(
+            self._index = nearest_2d_search(
                 self._y_rad,
                 self._x_rad,
                 positive_corrected_y_rad,
                 positive_corrected_x_rad,
             )
 
-            nav_index = uncorrected_index
+            self._nav_index = uncorrected_index
 
-        # the index that gets exposed is the image_index
-        self._index = image_index
+        # get the closest-fit Fixed Grid coordinates using the nav_index
+        self._y_rad = self._y_rad[self._nav_index[0]]
+        self._x_rad = self._x_rad[self._nav_index[1]]
 
-        # get the closest-fit Fixed Grid coordinate mesh using the nav_index
-        nav_y_idx = nav_index[0]
-        nav_x_idx = nav_index[1]
-
-        # try to avoid making a huge meshgrid
-        if self._y_rad[nav_y_idx].ndim == self._x_rad[nav_x_idx].ndim == 1:
-            x_rad_mesh, y_rad_mesh = np.meshgrid(
-                self._x_rad[nav_x_idx],
-                self._y_rad[nav_y_idx],
-                copy=False,
-            )
-
-        else:
+        if self._y_rad.ndim == self._x_rad.ndim == 1:
             x_rad_mesh, y_rad_mesh = np.meshgrid(
                 self._x_rad,
                 self._y_rad,
                 copy=False,
             )
-            y_rad_mesh = y_rad_mesh[nav_index]
-            x_rad_mesh = x_rad_mesh[nav_index]
+            self._lat_deg, self._lon_deg = self._navigate(
+                y_rad=np.atleast_1d(y_rad_mesh).astype(np.float32),
+                x_rad=np.atleast_1d(x_rad_mesh).astype(np.float32),
+            )
 
-        self._lat_deg, self._lon_deg = self._navigate(
-            y_rad=np.atleast_1d(y_rad_mesh).astype(np.float32),
-            x_rad=np.atleast_1d(x_rad_mesh).astype(np.float32),
-        )
-
-        self._y_rad = self._y_rad[nav_y_idx]
-        self._x_rad = self._x_rad[nav_x_idx]
+        else:
+            self._lat_deg, self._lon_deg = self._navigate(
+                y_rad=np.atleast_1d(self._y_rad).astype(np.float32),
+                x_rad=np.atleast_1d(self._x_rad).astype(np.float32),
+            )
 
     @property
     def y_rad(self):
@@ -314,6 +307,13 @@ class ABINavigation:
     @index.setter
     def index(self, value):
         self._index = value
+
+    @property
+    def nav_index(self):
+        if self._nav_index is None and not self._index_mode:
+            self._setup()
+
+        return self._nav_index
 
     @property
     def lat_deg(self):

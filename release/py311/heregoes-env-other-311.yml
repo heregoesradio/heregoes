@@ -1,0 +1,28 @@
+name: heregoes-env
+channels:
+  - conda-forge
+  - numba
+  - nodefaults
+
+dependencies:
+  - astropy
+  - black
+  - gdal
+  - isort
+  - netcdf4
+  - numba::numba
+  - numpy
+  - conda-forge::opencv
+  - pyproj
+  - pyspectral
+  - pytest
+  - pytest-cov
+  - python=3.11
+  - scipy
+  - threadpoolctl
+  - blas=*=*openblas
+  - libblas=*=*openblas
+  - nomkl
+  - pip
+  - pip:
+    - genbadge[coverage]

@@ -24,7 +24,7 @@ import numpy as np
 
 from heregoes.core import NCInterface
 from heregoes.projection import ABIProjection
-from heregoes.util import linear_interp, minmax
+from heregoes.util import linear_interp, make_8bit, minmax
 from tests import output_dir
 from tests.resources_ancillary import iremis_locations_nc, iremis_nc
 from tests.resources_l1b import *
@@ -73,5 +73,5 @@ def test_iremis():
 
     cv2.imwrite(
         str(output_dir.joinpath("iremis_c07.png")),
-        minmax(c07_land_emissivity) * 255,
+        make_8bit(minmax(c07_land_emissivity) * 255),
     )

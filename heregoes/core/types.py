@@ -21,7 +21,7 @@
 
 
 from os import PathLike
-from typing import Annotated, Literal
+from typing import Annotated
 
 from numpy.typing import NDArray
 

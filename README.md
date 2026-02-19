@@ -1,5 +1,5 @@
 # heregoes
-## Python Library for GOES-R ABI L1b, L2+, and SUVI L1b netCDF
+## Fast Python Library for GOES-R ABI and SUVI netCDF
 ------------------------------------------
 <p>
 <a href="https://github.com/heregoesradio/heregoes/blob/main/LICENSE.txt"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/heregoesradio/heregoes"></a>
@@ -16,9 +16,11 @@
     </a>
 </p>
 
-- Supports Sun imagery (SUVI L1b), Earth imagery (ABI L1b), and ABI L2+ products with advanced subsetting, navigation, and resampling
+#### Research quality GOES-R Earth and Sun imagery
+
 - Originally developed for realtime GOES-R processing at [Here GOES Radiotelescope](https://heregoesradio.com/) (Dove & Neilson, 2020)
-- Accelerated and parallelized with the [Numba](https://numba.pydata.org/) JIT compiler for Numpy
+- ABI features [tested](./tests/) against ground targets and official data and literature
+- SUVI imagery in production at [UW–Madison SSEC](https://cimss.ssec.wisc.edu/satellite-blog/archives/53279) and tested for QC
 
 ## Features
 | Instrument | Products | Features|
@@ -45,7 +47,7 @@
 Clone this repository and install the Conda environment. For Intel machines, use `heregoes-env-intel.yml` which includes MKL for acceleration. For other architectures like AMD or ARM64 (e.g. Raspberry Pi 5), use `heregoes-env-other.yml` which installs with OpenBLAS. Not yet tested on Apple Silicon.
 
 ```
-conda env create -f heregoes-env-intel.yml
+conda env create -f release/heregoes-env-intel.yml
 conda activate heregoes-env
 ```
 
