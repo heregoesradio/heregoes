@@ -16,7 +16,7 @@
     </a>
 </p>
 
-#### Research quality GOES-R Earth and Sun imagery
+#### Research quality GOES-R Earth and Sun imagery from netCDF
 
 - Originally developed for realtime GOES-R processing at [Here GOES Radiotelescope](https://heregoesradio.com/) (Dove & Neilson, 2020)
 - ABI features [tested](./tests/) against ground targets and official data and literature
