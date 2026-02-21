@@ -7,14 +7,14 @@ Here we parallax-correct ABI imagery and geolocation in its native Fixed Grid pr
 At off-nadir viewing angles, the apparent positions of Earth features like cloud or high terrain are displaced by parallax effects in satellite imagery (Figure 1). Cloud height can be estimated from radiance and used to derive the true geodetic coordinates of cloud pixels[^1]. Orthorectification is the inverse problem, where terrain height and coordinates are known, but the pixel locations are not[^2].
 
 ![Pixel distance of parallax displacement](./img/index-delta.png "Pixel distance of parallax displacement")
-* **Figure 1.** *Geolocation error from terrain parallax in a 500 m resolution GOES-East ABI image (250x250 px).*
+* **Figure 1.** *Geolocation error from terrain parallax in a 500 m resolution GOES-East ABI image (250 x 250 pixels).*
 
 <br>
 
 In 2022, Pestana and Lundquist[^3] demonstrated that rapid orthorectification of ABI imagery can be achieved in Python by interpolating ABI pixels onto a digital elevation model (DEM). However, as the authors note, ABI L1b radiance is already resampled from detector counts through ground system processing[^4]. Further resampling by orthorectification complicates sub-pixel retrievals, particularly for high-intensity targets such as fires[^5]. With the `heregoes` library, we can accurately navigate elevated pixels *in situ* and preserve the original sampling of the L1b image.
 
 ### Method
-SRTM ellipsoidal heights are projected to a subset of the ABI scene for a region of interest. The parallax displacement vector can then be recovered in cartesian space with fast Numpy indexing methods. We apply the inverse vector to translate Fixed Grid coordinates away from nadir to their observed positions in L1b pixels (Figure 2, Figure 3). In `heregoes`, the image layer is colocated with navigation and either can be translated individually to achieve backward or forward (Figure 4) orthorectification. See [`ABINavigation`](../heregoes/navigation/_navigation.py) and demo code in [orthorectification.py](orthorectification.py).
+SRTM ellipsoidal heights are projected to a subset of the ABI scene for a region of interest. The parallax displacement vector can then be recovered in cartesian space with fast Numpy indexing methods. We apply the inverse vector to translate Fixed Grid coordinates away from nadir to their observed positions in L1b pixels (Figure 2, Figure 3). In `heregoes`, the image is layered over navigational data and either layer can be translated separately to achieve backward or forward (Figure 4) orthorectification. See [`ABINavigation`](../heregoes/navigation/_navigation.py) and demo code in [orthorectification.py](orthorectification.py).
 
 ![SRTM heights projected and inverse orthorectified](./img/warped-srtm.gif "SRTM heights projected and inverse orthorectified")
 * **Figure 2.** *Inverse orthorectification illustrated by applying to the projected SRTM elevation data instead of ABI Fixed Grid coordinates.*
