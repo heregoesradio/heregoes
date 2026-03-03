@@ -151,13 +151,11 @@ def pixel_width(x_rad, r_eq, sat_height, ifov):  # pragma: no cover
 @heregoes_njit
 def pixel_area(cross_track, along_track):  # pragma: no cover
     if cross_track.ndim == 1 and along_track.ndim == 1:
-        product = np.atleast_1d(
-            cross_track.reshape(-1, 1) * along_track.reshape(1, -1)
-        )
+        product = np.atleast_1d(cross_track.reshape(-1, 1) * along_track.reshape(1, -1))
 
     else:
         product = cross_track * along_track
-    
+
     return np.atleast_1d(product).astype(np.float32)
 
 

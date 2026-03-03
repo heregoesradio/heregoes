@@ -3,9 +3,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-
 from srtm import get_ellipsoidal_srtm
-from figure import latlon_target, index_delta_figure
+from figure import index_delta_figure, latlon_target
 
 from heregoes.image import ABIImage
 from heregoes.projection import ABIProjection
@@ -43,9 +42,18 @@ image_path = Path("img")
 image_path.mkdir(exist_ok=True)
 
 
-def ortho_abi_from_srtm15(abi_nc_path: PathLike, srtm_nc_path: PathLike, lat_bounds: tuple[float, float], lon_bounds: tuple[float, float], target_latlon: list[tuple[float, float]], abi_gamma: float, image_path: PathLike, upscale_factor=2):
+def ortho_abi_from_srtm15(
+    abi_nc_path: PathLike,
+    srtm_nc_path: PathLike,
+    lat_bounds: tuple[float, float],
+    lon_bounds: tuple[float, float],
+    target_latlon: list[tuple[float, float]],
+    abi_gamma: float,
+    image_path: PathLike,
+    upscale_factor=2,
+):
     """Visualize forward and backward orthorectification of ABI using SRTM15 netCDF"""
-    
+
     # get 15-arcsecond SRTM height data for the ABI region
     srtm_lat, srtm_lon, srtm_height = get_ellipsoidal_srtm(
         srtm_nc_path=srtm_nc_path,
@@ -164,7 +172,6 @@ def ortho_abi_from_srtm15(abi_nc_path: PathLike, srtm_nc_path: PathLike, lat_bou
         image_path.joinpath("warped-inverse-orthorectified-heights.png"),
         x2(warped_orthorectified_heights),
     )
-
 
 
 if __name__ == "__main__":

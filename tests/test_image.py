@@ -117,7 +117,7 @@ def test_abi_image():
 
                 filepath = output_dir.joinpath(filename + ".jpeg")
                 abi_rgb_full.save(filepath=filepath)
-                
+
                 # indexed RGB
                 abi_rgb_indexed_bounds = image.ABINaturalRGB(
                     r_nc,

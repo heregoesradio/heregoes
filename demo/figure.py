@@ -15,7 +15,7 @@ def latlon_target(
     search_lon: NDArray,
     target_latlon: tuple[float, float],
     color_bgr: tuple[int, int, int] = (0, 255, 0),
-    upscale_factor: float = 2
+    upscale_factor: float = 2,
 ) -> NDArray:
     upscaled_img = nearest_scale(img, upscale_factor)
 
@@ -31,11 +31,19 @@ def latlon_target(
         target_idx = scale_idx(target_idx, upscale_factor)
         target_y, target_x = target_idx
 
-        marked_img[target_y : target_y + upscale_factor, target_x : target_x + upscale_factor, :] = color_bgr
-        
+        marked_img[
+            target_y : target_y + upscale_factor,
+            target_x : target_x + upscale_factor,
+            :,
+        ] = color_bgr
+
         # cv2.circle(marked_img, center=target_idx[::-1], radius=3, thickness=1, color=color_bgr)
         cv2.circle(
-            marked_img, center=(target_x + upscale_factor // 2, target_y + upscale_factor // 2), radius=25, thickness=1, color=color_bgr
+            marked_img,
+            center=(target_x + upscale_factor // 2, target_y + upscale_factor // 2),
+            radius=25,
+            thickness=1,
+            color=color_bgr,
         )
 
     return marked_img
@@ -100,4 +108,3 @@ def index_delta_figure(idx1, idx2, filepath):
     )
 
     fig.write_image(filepath)
-

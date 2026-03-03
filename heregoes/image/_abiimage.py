@@ -29,7 +29,7 @@ from heregoes.core.types import ABIL1bInputType, FixedGridDataType, FixedGridInd
 from heregoes.goesr import abi
 from heregoes.image._image import _Image
 from heregoes.projection import ABIProjection
-from heregoes.util import align_idx, scale_arr, scale_idx, linear_norm
+from heregoes.util import align_idx, linear_norm, scale_arr, scale_idx
 
 logger = logging.getLogger()
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
@@ -138,7 +138,7 @@ class ABIImage(_Image, ABIProjection):
     def dqf(self):
         if self._dqf is None:
             self._dqf = self.abi_data["DQF"][self.index]
-        
+
         return self._dqf
 
     @dqf.setter
@@ -180,18 +180,24 @@ class ABIImage(_Image, ABIProjection):
                     self.rf_min, self.rf_max = (
                         self.rad_range
                         * np.pi
-                        * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][...])
+                        * np.square(
+                            self.abi_data["earth_sun_distance_anomaly_in_AU"][...]
+                        )
                     ) / self.abi_data["esun"][...]
 
                     self._bv = abi.rf2bv(
-                        linear_norm(self.cmi, old_min=self.rf_min, old_max=self.rf_max, new_min=0.0, new_max=1.0),
+                        linear_norm(
+                            self.cmi,
+                            old_min=self.rf_min,
+                            old_max=self.rf_max,
+                            new_min=0.0,
+                            new_max=1.0,
+                        ),
                         gamma=self.gamma,
                     )
 
                 else:
-                    self._bv = abi.rf2bv(
-                        self.cmi, gamma=self.gamma
-                    )
+                    self._bv = abi.rf2bv(self.cmi, gamma=self.gamma)
 
             elif 7 <= self.abi_data["band_id"][...] <= 16:
                 self._bv = abi.bt2bv(self.cmi)
