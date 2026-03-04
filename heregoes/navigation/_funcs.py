@@ -23,7 +23,7 @@ import datetime
 
 import numpy as np
 
-from heregoes.core import heregoes_njit, heregoes_njit_noparallel
+from heregoes.core import heregoes_njit
 
 
 @heregoes_njit
@@ -148,11 +148,15 @@ def pixel_width(x_rad, r_eq, sat_height, ifov):  # pragma: no cover
     return np.atleast_1d(La).astype(np.float32)
 
 
-@heregoes_njit_noparallel
+@heregoes_njit
 def pixel_area(cross_track, along_track):  # pragma: no cover
-    return np.atleast_1d(
-        cross_track[:, np.newaxis] * along_track[np.newaxis, :]
-    ).astype(np.float32)
+    if cross_track.ndim == 1 and along_track.ndim == 1:
+        product = np.atleast_1d(cross_track.reshape(-1, 1) * along_track.reshape(1, -1))
+
+    else:
+        product = cross_track * along_track
+
+    return np.atleast_1d(product).astype(np.float32)
 
 
 def fractional_jd(utc_time: datetime.datetime) -> float:

@@ -141,6 +141,7 @@ class _NCVar(_NCBase):
 
         self.__value__ = None
         self._mask = None
+        self._pct_unmasked = None
         self._is_loaded = False
         self._slc = np.s_[...]
         self._override_fill_value = None
@@ -154,6 +155,13 @@ class _NCVar(_NCBase):
             self._loadvar()
 
         return self._mask
+
+    @property
+    def pct_unmasked(self):
+        if not self._is_loaded:
+            self._loadvar()
+
+        return self._pct_unmasked
 
     def set_fill_value(self, val):
         if val != self._FillValue:
@@ -204,7 +212,7 @@ class _NCVar(_NCBase):
             self.__value__ = np.ma.masked_array(
                 self.__value__, mask=self._mask, fill_value=fill_value
             )
-            self.pct_unmasked = self.__value__.count() / max(self.__value__.size, 1)
+            self._pct_unmasked = self.__value__.count() / max(self.__value__.size, 1)
             self.__value__ = self.__value__.filled()
 
         # gather updated attrs of the numpy array

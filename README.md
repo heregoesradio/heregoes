@@ -8,8 +8,8 @@
 <p>
 
 <p float="left">
-    <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/grb_g16_fulldisk_color_2019-09-04T170015Z.jpg">
-        <img src="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/grb_g16_fulldisk_color_2019-09-04T170015Z_thumbnail.jpg" width="250">
+    <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_v1.0.1.jpg">
+        <img src="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_fulldisk_color_2019-09-04T170015Z_cog_thumbnail.jpg" width="250">
     </a>
     <a href="http://static.heregoesradio.com/suvi/grb_g16_suvi_color_2022-11-23T113653Z.jpg">
         <img src="http://static.heregoesradio.com/suvi/grb_g16_suvi_color_2022-11-23T113653Z_thumbnail.jpg" height="250">

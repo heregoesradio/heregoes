@@ -29,7 +29,7 @@ from heregoes.core.types import ABIL1bInputType, FixedGridDataType, FixedGridInd
 from heregoes.goesr import abi
 from heregoes.image._image import _Image
 from heregoes.projection import ABIProjection
-from heregoes.util import align_idx, scale_arr, scale_idx
+from heregoes.util import align_idx, linear_norm, scale_arr, scale_idx
 
 logger = logging.getLogger()
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
@@ -44,6 +44,7 @@ class ABIImage(_Image, ABIProjection):
         lon_bounds: Optional[FixedGridDataType] = None,
         height_m: Optional[FixedGridDataType] = 0.0,
         gamma: float = 1.0,
+        normalize_rf: bool = False,
         black_space: bool = False,
         **kwargs,
     ):
@@ -63,7 +64,9 @@ class ABIImage(_Image, ABIProjection):
             - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use geodetic latitude and longitude (degrees) to select a slice of the ABI image, e.g.:
                 - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
 
-            - `gamma` (optional): Gamma correction term for reflective ABI brightness value; 0.5 is the common square root enhancement. Defaults to no correction
+            - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
+
+            - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
 
             - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `False`
 
@@ -96,23 +99,29 @@ class ABIImage(_Image, ABIProjection):
             **kwargs,
         )
         self.gamma = gamma
+        self.normalize_rf = normalize_rf
         self.black_space = black_space
+
         self._rad = None
         self._dqf = None
-        self._mask = None
-        self._quality = None
         self._cmi = None
         self._bv = None
 
-        self.rad = self.abi_data["Rad"][self.index]
+        self._rad = self.abi_data["Rad"][self.index]
         self.mask = self.abi_data["Rad"].mask
         self.quality = self.abi_data["Rad"].pct_unmasked
 
-        self.rad_range = np.array(
+        rad_range = np.array(
             self.abi_data["Rad"].valid_range * self.abi_data["Rad"].scale_factor
             + self.abi_data["Rad"].add_offset,
             dtype=np.float32,
         )
+
+        self._rf_min, self._rf_max = (
+            rad_range
+            * np.pi
+            * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][...])
+        ) / self.abi_data["esun"][...]
 
         self.default_filename = "_".join(
             (
@@ -125,9 +134,21 @@ class ABIImage(_Image, ABIProjection):
         )
 
     @property
+    def rad(self):
+        if self._rad is None:
+            self._rad = self.abi_data["Rad"][self.index]
+
+        return self._rad
+
+    @rad.setter
+    def rad(self, value):
+        self._rad = value
+
+    @property
     def dqf(self):
         if self._dqf is None:
             self._dqf = self.abi_data["DQF"][self.index]
+
         return self._dqf
 
     @dqf.setter
@@ -153,6 +174,8 @@ class ABIImage(_Image, ABIProjection):
                     self.abi_data["planck_bc2"][...],
                 )
 
+        self.rad = None
+
         return self._cmi
 
     @cmi.setter
@@ -163,21 +186,28 @@ class ABIImage(_Image, ABIProjection):
     def bv(self):
         if self._bv is None:
             if 1 <= self.abi_data["band_id"][...] <= 6:
-                # calculate the range of possible reflectance factors from the provided valid range of radiance, and use it to normalize before the gamma correction
-                self.rf_min, self.rf_max = (
-                    self.rad_range
-                    * np.pi
-                    * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][...])
-                ) / self.abi_data["esun"][...]
-                self._bv = abi.rf2bv(
-                    self.cmi, min=self.rf_min, max=self.rf_max, gamma=self.gamma
-                )
+                if self.normalize_rf or self.gamma == 1.0:
+                    self._bv = abi.rf2bv(
+                        linear_norm(
+                            self.cmi,
+                            old_min=0.0,
+                            old_max=self._rf_max,
+                            new_min=0.0,
+                            new_max=1.0,
+                        ),
+                        gamma=self.gamma,
+                    )
+
+                else:
+                    self._bv = abi.rf2bv(self.cmi, gamma=self.gamma)
 
             elif 7 <= self.abi_data["band_id"][...] <= 16:
                 self._bv = abi.bt2bv(self.cmi)
 
             if self.black_space:
                 self._bv[self.mask] = 0
+
+        self.cmi = None
 
         return self._bv
 
@@ -198,6 +228,7 @@ class ABINaturalRGB(_Image, ABIProjection):
         upscale: bool = False,
         upscale_algo: str = "cubic",
         gamma: float = 1.0,
+        normalize_rf: bool = False,
         black_space: bool = False,
         **kwargs,
     ):
@@ -218,7 +249,9 @@ class ABINaturalRGB(_Image, ABIProjection):
             - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use geodetic latitude and longitude (degrees) to select a slice of the ABI image, e.g.:
                 - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
 
-            - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Defaults to no correction
+            - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
+
+            - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
 
             - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Default `False`
 
@@ -282,6 +315,7 @@ class ABINaturalRGB(_Image, ABIProjection):
             red_data,
             index=scale_idx(self.index, 1 / scaler_500m),
             gamma=gamma,
+            normalize_rf=normalize_rf,
             black_space=black_space,
         )
         red_image.bv = scale_arr(
@@ -294,6 +328,7 @@ class ABINaturalRGB(_Image, ABIProjection):
             green_data,
             index=scale_idx(self.index, 1 / scaler_1km),
             gamma=gamma,
+            normalize_rf=normalize_rf,
             black_space=black_space,
         )
         green_image.bv = scale_arr(
@@ -306,6 +341,7 @@ class ABINaturalRGB(_Image, ABIProjection):
             blue_data,
             index=scale_idx(self.index, 1 / scaler_1km),
             gamma=gamma,
+            normalize_rf=normalize_rf,
             black_space=black_space,
         )
         blue_image.bv = scale_arr(

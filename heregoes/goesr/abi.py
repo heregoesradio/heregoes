@@ -40,11 +40,14 @@ def rf2rad(rf, esd, esun):  # pragma: no cover
 
 
 @heregoes_njit
-def rf2bv(rf, min, max, gamma=1.0):  # pragma: no cover
+def rf2bv(rf, gamma=1.0):  # pragma: no cover
     # converts Reflectance Factor (RF) to an 8-bit representation (Brightness Value (BV)) following CMIP ATBD eq. 3-22
+    if gamma == 1.0:
+        return make_8bit(rf * 255)
+
     return make_8bit(
         np.power(
-            linear_norm(rf, old_min=min, old_max=max, new_min=0.0, new_max=1.0),
+            rf,
             gamma,
         )
         * 255

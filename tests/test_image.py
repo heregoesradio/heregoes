@@ -54,15 +54,24 @@ def test_l2_cmi():
 
 
 def test_abi_image():
+    gamma = 0.5
+
     # test single-channel images
-    for abi_nc in resources_l1b.abi_ncs:
-        abi_image = image.ABIImage(abi_nc, gamma=0.75, black_space=True)
+    for normalize_rf in [True, False]:
+        for abi_nc in resources_l1b.abi_ncs:
+            abi_image = image.ABIImage(
+                abi_nc, gamma=gamma, black_space=False, normalize_rf=normalize_rf
+            )
 
-        assert abi_image.rad.dtype == np.float32
-        assert abi_image.cmi.dtype == np.float32
-        assert abi_image.bv.dtype == np.uint8
+            assert abi_image.rad.dtype == np.float32
+            assert abi_image.cmi.dtype == np.float32
+            assert abi_image.bv.dtype == np.uint8
 
-        abi_image.save(filepath=output_dir, ext=".jpg")
+            filename = abi_image.default_filename
+            if normalize_rf:
+                filename += "normalize_rf"
+
+            abi_image.save(filepath=output_dir.joinpath(filename + ".jpg"))
 
     # test index alignment for subsetted RGB images
     lat_bounds_500m = (46.0225830078125, 43.89013671875)
@@ -103,13 +112,18 @@ def test_abi_image():
                     b_nc,
                     upscale=upscale,
                     upscale_algo=upscale_algo,
-                    gamma=0.75,
+                    gamma=gamma,
                     black_space=True,
                 )
 
                 assert abi_rgb_full.bv.dtype == np.uint8
 
-                abi_rgb_full.save(filepath=output_dir, ext=".jpeg")
+                filename = f"{abi_rgb_full.default_filename}_full_rgb"
+                if upscale:
+                    filename += f"_upscale_{upscale_algo}"
+
+                filepath = output_dir.joinpath(filename + ".jpeg")
+                abi_rgb_full.save(filepath=filepath)
 
                 # indexed RGB
                 abi_rgb_indexed_bounds = image.ABINaturalRGB(
@@ -119,7 +133,7 @@ def test_abi_image():
                     index=slc,
                     upscale=upscale,
                     upscale_algo=upscale_algo,
-                    gamma=0.75,
+                    gamma=gamma,
                     black_space=True,
                 )
 
@@ -132,7 +146,7 @@ def test_abi_image():
                     lon_bounds=lon_bounds,
                     upscale=upscale,
                     upscale_algo=upscale_algo,
-                    gamma=0.75,
+                    gamma=gamma,
                     black_space=True,
                 )
 
