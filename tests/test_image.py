@@ -57,14 +57,21 @@ def test_abi_image():
     gamma = 0.5
 
     # test single-channel images
-    for abi_nc in resources_l1b.abi_ncs:
-        abi_image = image.ABIImage(abi_nc, gamma=gamma, black_space=False)
+    for normalize_rf in [True, False]:
+        for abi_nc in resources_l1b.abi_ncs:
+            abi_image = image.ABIImage(
+                abi_nc, gamma=gamma, black_space=False, normalize_rf=normalize_rf
+            )
 
-        assert abi_image.rad.dtype == np.float32
-        assert abi_image.cmi.dtype == np.float32
-        assert abi_image.bv.dtype == np.uint8
+            assert abi_image.rad.dtype == np.float32
+            assert abi_image.cmi.dtype == np.float32
+            assert abi_image.bv.dtype == np.uint8
 
-        abi_image.save(filepath=output_dir, ext=".jpg")
+            filename = abi_image.default_filename
+            if normalize_rf:
+                filename += "normalize_rf"
+
+            abi_image.save(filepath=output_dir.joinpath(filename + ".jpg"))
 
     # test index alignment for subsetted RGB images
     lat_bounds_500m = (46.0225830078125, 43.89013671875)
