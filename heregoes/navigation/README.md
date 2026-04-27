@@ -21,6 +21,8 @@ Initialize `ABINavigation` on a subset of the ABI scene.
 
 #### With a Fixed Grid index or slice:
 ```python
+import numpy as np
+
 from heregoes.navigation import ABINavigation
 
 #2d index:
@@ -64,7 +66,7 @@ h = ellipsoidal height of cloud or high terrain
 θ = satellite zenith angle
 ```
 
-Subsetted navigation elements are corrected for parallax to the nearest Fixed Grid pixel if `height_m` is provided as an argument to `ABINavigation`. Typically, the height is either estimated for cloud pixels within the scene[^6] or taken from a DEM for the terrain.
+Subsetted navigation elements are corrected for parallax to the nearest Fixed Grid pixel if `height_m` is provided as an argument to `ABINavigation`. Typically, the height is either estimated for cloud pixels within the scene[^6] or [taken from a DEM for the terrain](../../demo/README.md).
 
 - #### For cloud height with the `index` argument:
     The `height_m` argument is valid for the indexed Fixed Grid point(s). The calculated latitude / longitude and derived navigation elements are corrected for parallax by adding ellipsoidal height to the `r_c` term of equations 7.1.2.8.2 in [^1].

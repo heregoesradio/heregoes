@@ -148,8 +148,9 @@ class ABIProjection(ABINavigation):
         return self._image_shape_px
 
     def resample2cog(self, source, filepath, resample_algo="lanczos", **kwargs):
-        resampled = self.resample2latlon(
+        resampled = self.resample(
             source,
+            target="latlon",
             resample_algo=resample_algo,
             return_type="gdal",
             **kwargs,
@@ -211,6 +212,28 @@ class ABIProjection(ABINavigation):
         image_height_px, image_width_px = self.image_shape_px
         scan_ul_y, scan_lr_y = self.y_projected_bounds
         scan_ul_x, scan_lr_x = self.x_projected_bounds
+
+        resample_algos = [
+            "near",
+            "nearest",
+            "bilinear",
+            "cubic",
+            "cubicspline",
+            "lanczos",
+            "average",
+            "rms",
+            "mode",
+            "max",
+            "min",
+            "med",
+            "q1",
+            "q3",
+            "sum",
+        ]
+        if resample_algo not in resample_algos:
+            raise ValueError(
+                f"`resample_algo` '{resample_algo}' not supported by GDAL, must be one of:\n{resample_algos}."
+            )
 
         match target.lower():
             case "latlon":
@@ -284,6 +307,7 @@ class ABIProjection(ABINavigation):
             yRes=yRes,
             srcNodata=source_nodata,
             dstNodata=target_nodata,
+            warpMemoryLimit=500,
         )
 
         dataset = numpy2gdal(source)

@@ -24,7 +24,7 @@
 import numpy as np
 
 from heregoes.core import heregoes_njit
-from heregoes.util import linear_norm, make_8bit
+from heregoes.util import make_8bit, make_rgb
 
 
 @heregoes_njit
@@ -93,11 +93,6 @@ def rad_wvl2wvn(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
 @heregoes_njit
 def bv2rgb(r_bv, g_bv, b_bv, r_coeff, g_coeff, b_coeff):  # pragma: no cover
     # from brightness value space, return the fractional combination "green" band RGB Bah et. al (2018)
-    # returns in BGR order for cv2 compatibility
     g_bv = (r_bv * r_coeff) + (g_bv * g_coeff) + (b_bv * b_coeff)
-    rgb = np.zeros(shape=(r_bv.shape[0], r_bv.shape[1], 3), dtype=np.uint8)
-    rgb[:, :, 0] = b_bv
-    rgb[:, :, 1] = g_bv
-    rgb[:, :, 2] = r_bv
 
-    return make_8bit(rgb)
+    return make_8bit(make_rgb(r_bv, g_bv, b_bv))

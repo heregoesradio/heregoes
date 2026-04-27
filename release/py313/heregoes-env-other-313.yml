@@ -1,4 +1,4 @@
-name: heregoes-env
+name: heregoes-env-314
 channels:
   - conda-forge
   - numba
@@ -17,7 +17,7 @@ dependencies:
   - pyspectral
   - pytest
   - pytest-cov
-  - python=3.14
+  - python=3.13
   - scipy
   - threadpoolctl
   - blas=*=*openblas

@@ -18,7 +18,7 @@ dependencies:
   - pyspectral
   - pytest
   - pytest-cov
-  - python=3.13
+  - python=3.14
   - scipy
   - threadpoolctl
   - blas=*=*mkl
