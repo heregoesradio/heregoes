@@ -80,9 +80,29 @@ def test_projection():
         upscale=True,
         gamma=1.0,
     )
-    abi_rgb.resample2cog(
-        source="bv", filepath=output_dir.joinpath(abi_rgb.default_filename + ".tiff")
-    )
+    for resample_algo in [
+        "near",
+        "nearest",
+        "bilinear",
+        "cubic",
+        "cubicspline",
+        "lanczos",
+        "average",
+        "rms",
+        "mode",
+        "max",
+        "min",
+        "med",
+        "q1",
+        "q3",
+        "sum",
+    ]:
+        abi_rgb.resample2cog(
+            filepath=output_dir.joinpath(
+                abi_rgb.default_filename + f"_{resample_algo}.tiff"
+            ),
+            resample_algo=resample_algo,
+        )
 
     slc = np.s_[0:3500, 1000:9000]
     abi_rgb = image.ABINaturalRGB(
@@ -94,7 +114,6 @@ def test_projection():
         gamma=0.75,
     )
     abi_rgb.resample2cog(
-        source="bv",
         filepath=output_dir.joinpath(abi_rgb.default_filename + ".tiff"),
         resample_algo="nearest",
     )

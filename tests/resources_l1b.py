@@ -129,6 +129,16 @@ suvi_284_nc = input_dir.joinpath(
 suvi_304_nc = input_dir.joinpath(
     "suvi-l1b/OR_SUVI-L1b-He303_G16_s20203160622501_e20203160622511_c20203160623090.nc"
 )
+suvi_red_nc = input_dir.joinpath(
+    "suvi-l1b/OR_SUVI-L1b-Fe171_G16_s20242771227129_e20242771227139_c20242771227324.nc"
+)
+suvi_green_nc = input_dir.joinpath(
+    "suvi-l1b/OR_SUVI-L1b-Fe195_G16_s20242771227329_e20242771227339_c20242771227529.nc"
+)
+suvi_blue_nc = input_dir.joinpath(
+    "suvi-l1b/OR_SUVI-L1b-Fe284_G16_s20242771227428_e20242771227438_c20242771228025.nc"
+)
+
 suvi_ncs = [
     suvi_094_nc,
     suvi_131_nc,
@@ -136,4 +146,7 @@ suvi_ncs = [
     suvi_195_nc,
     suvi_284_nc,
     suvi_304_nc,
+    suvi_red_nc,
+    suvi_green_nc,
+    suvi_blue_nc,
 ]

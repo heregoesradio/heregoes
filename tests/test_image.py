@@ -60,7 +60,7 @@ def test_abi_image():
     for normalize_rf in [True, False]:
         for abi_nc in resources_l1b.abi_ncs:
             abi_image = image.ABIImage(
-                abi_nc, gamma=gamma, black_space=False, normalize_rf=normalize_rf
+                abi_nc, gamma=gamma, black_space=True, normalize_rf=normalize_rf
             )
 
             assert abi_image.rad.dtype == np.float32
@@ -185,4 +185,39 @@ def test_suvi_image():
         assert suvi_image.rad.dtype == np.float32
         assert suvi_image.bv.dtype == np.uint8
 
-        suvi_image.save(filepath=output_dir, ext=".png")
+        suvi_image.save(filepath=output_dir, ext=".jpg")
+
+
+def test_suvi_rgb():
+    red = image.SUVIImage(
+        resources_l1b.suvi_red_nc,
+        input_range=(0.0, 15.0),
+        asinh_a=0.0007,
+        output_range=(0.0, 1.0),
+    )
+
+    green = image.SUVIImage(
+        resources_l1b.suvi_green_nc,
+        input_range=(0.0, 50.0),
+        asinh_a=0.001,
+        output_range=(0.0, 1.0),
+    )
+
+    blue = image.SUVIImage(
+        resources_l1b.suvi_blue_nc,
+        input_range=(0.0, 60.0),
+        asinh_a=0.000075,
+        output_range=(0.0, 1.0),
+    )
+
+    rgb = image.SUVIRGB(red, green, blue)
+
+    assert (rgb.bv[:, :, 2] == red.bv).all()
+    assert (rgb.bv[:, :, 1] == green.bv).all()
+    assert (rgb.bv[:, :, 0] == blue.bv).all()
+
+    assert (
+        rgb.time == np.array([red.time, green.time, blue.time], dtype="datetime64")
+    ).all()
+
+    rgb.save(filepath=output_dir, ext=".jpeg")

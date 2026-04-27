@@ -21,6 +21,8 @@ Initialize `ABINavigation` on a subset of the ABI scene.
 
 #### With a Fixed Grid index or slice:
 ```python
+import numpy as np
+
 from heregoes.navigation import ABINavigation
 
 #2d index:

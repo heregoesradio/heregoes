@@ -35,6 +35,8 @@ __all__ = [
     "linear_norm",
     "linear_scale",
     "make_8bit",
+    "make_rgb",
+    "max_time_delta",
     "minmax",
     "nearest_1d_indices",
     "nearest_2d_indices",
@@ -195,6 +197,26 @@ def scale_idx(idx, scale_factor):
 @heregoes_njit
 def make_8bit(arr):  # pragma: no cover
     return np.clip(np.rint(arr), 0, 255).astype(np.uint8)
+
+
+@heregoes_njit
+def make_rgb(r_img, g_img, b_img):  # pragma: no cover
+    # returns a 3-channel image in BGR order for cv2 compatibility
+    rgb = np.zeros(shape=(r_img.shape[0], r_img.shape[1], 3), dtype=np.uint8)
+    rgb[:, :, 0] = b_img
+    rgb[:, :, 1] = g_img
+    rgb[:, :, 2] = r_img
+
+    return rgb
+
+
+def max_time_delta(time_array):
+    # returns the max time delta in seconds between members of time_array
+    t = np.asarray(time_array, dtype="datetime64")
+    delta_s = (t.reshape(-1, 1) - t.reshape(1, -1)) / np.timedelta64(1, "s")
+    max_delta_s = np.max(np.abs(delta_s))
+
+    return max_delta_s
 
 
 def centered_slice(center_idx, shape):

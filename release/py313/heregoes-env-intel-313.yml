@@ -8,6 +8,7 @@ dependencies:
   - astropy
   - black
   - gdal
+  - numba::icc_rt
   - isort
   - netcdf4
   - numba::numba
@@ -17,12 +18,11 @@ dependencies:
   - pyspectral
   - pytest
   - pytest-cov
-  - python=3.14
+  - python=3.13
   - scipy
   - threadpoolctl
-  - blas=*=*openblas
-  - libblas=*=*openblas
-  - nomkl
+  - blas=*=*mkl
+  - libblas=*=*mkl
   - pip
   - pip:
     - genbadge[coverage]
