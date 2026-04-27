@@ -23,6 +23,7 @@ img.save("suvi.jpg")
 <img src="https://static.heregoesradio.com/suvi/g16_suvi_171_2024-10-03T122712Z_thumbnail.jpg">
 </a>
 
+<br>
 
 ### SUVI Custom RGB
 Create red, green, and blue SUVIImage channels with custom scaling coefficients, then combine as an RGB image:
@@ -60,6 +61,8 @@ rgb = SUVIRGB(red, green, blue)
 
 rgb.save(filepath="output_dir", ext=".jpeg")
 ```
+
+<br>
 
 <a href="https://static.heregoesradio.com/suvi/g16_suvi_color_2024-10-03T122712Z.jpeg">
 <img src="https://static.heregoesradio.com/suvi/g16_suvi_color_2024-10-03T122712Z_thumbnail.jpeg">

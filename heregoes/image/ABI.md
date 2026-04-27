@@ -32,6 +32,7 @@ img.save(ext=".jpeg")
 <img src="https://static.heregoesradio.com/abi/conus/g16_abi_conus_c02_2021-06-18T194117Z_thumbnail.jpeg">
 </a>
 
+<br>
 
 ### ABI Natural Color RGB
 Generate the "natural" color RGB for ABI using the fractional combination green band method[^2]:
@@ -64,6 +65,7 @@ img.save(filepath="path/to/images/conus.png")
 <img src="https://static.heregoesradio.com/abi/conus/g16_abi_conus_color_2019-09-04T170111Z_thumbnail.jpeg">
 </a>
 
+<br>
 
 ### Resample ABI imagery to equirectangular projection
 ```python
@@ -83,6 +85,7 @@ img.resample2cog("meso1_c13.tiff", resample_algo="lanczos")
 <img src="https://static.heregoesradio.com/abi/meso/meso1_c13.jpeg" width="500" height="500">
 </a>
 
+<br>
 
 ### References
 [^1]: https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf
