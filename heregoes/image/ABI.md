@@ -15,7 +15,12 @@ x1, x2 = 0, 2000
 index = np.s_[y1:y2, x1:x2]
 
 #render the 0.64 µm image with square root enhancement and black space background
-img = ABIImage("OR_ABI-L1b-RadC-M6C02_G16_s20211691941174_e20211691943547_c20211691943571.nc", gamma=0.5, black_space=True, index=index)
+img = ABIImage(
+    "OR_ABI-L1b-RadC-M6C02_G16_s20211691941174_e20211691943547_c20211691943571.nc",
+    gamma=0.5,
+    black_space=True,
+    index=index,
+)
 
 #save as JPEG with a sequential filename in the current folder
 img.save(ext=".jpeg")
@@ -38,7 +43,15 @@ lat_bounds = [upper_left_lat, lower_right_lat]
 lon_bounds = [upper_left_lon, lower_right_lon]
 
 #optionally set gamma to 3/4 and scale up green and blue to the spatial resolution of the red channel
-img = ABINaturalRGB("OR_ABI-L1b-RadC-M6C02[...].nc", "OR_ABI-L1b-RadC-M6C03[...].nc", "OR_ABI-L1b-RadC-M6C01[...].nc", gamma=0.75, upscale=True, lat_bounds=lat_bounds, lon_bounds=lon_bounds)
+img = ABINaturalRGB(
+    "OR_ABI-L1b-RadC-M6C02[...].nc",
+    "OR_ABI-L1b-RadC-M6C03[...].nc",
+    "OR_ABI-L1b-RadC-M6C01[...].nc",
+    gamma=0.75,
+    upscale=True,
+    lat_bounds=lat_bounds,
+    lon_bounds=lon_bounds,
+)
 
 #save to a JPEG
 img.save(filepath="path/to/images/conus.jpg")
