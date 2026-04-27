@@ -1,6 +1,6 @@
 ## ABI Examples
 
-Save ABI radiance imagery in common 8-bit image formats with `.save()`, or as a Cloud-Optimized GeoTIFF (COG) with `.resample2cog()`. Both `ABIImage` and `ABINaturalRGB` inherit subsetting and navigation features from [`ABINavigation`](../navigation/README.md).
+Create ABI radiance imagery with `ABIImage` and `ABINaturalRGB`, then save in common 8-bit formats with `.save()` or as Cloud-Optimized GeoTIFF (COG) with `.resample2cog()`. ABI image classes inherit subsetting, navigation, and parallax correction features from [`ABINavigation`](../navigation/README.md).
 
 ### ABI Cloud and Moisture Imagery from L1b Radiance
 Generate the Cloud and Moisture Imagery (CMI) product following the GOES-R ATBD[^1] with `ABIImage`. Spectral radiance `.rad` is converted to CMI in `.cmi`, which contains either top-of-atmosphere reflectance factor for ABI bands 1-6, or brightness temperature in Kelvin for the emissive bands 7-16.
