@@ -60,6 +60,8 @@ print(max_time_delta([red.time, green.time, blue.time]))
 rgb = SUVIRGB(red, green, blue)
 
 rgb.save(filepath="output_dir", ext=".jpeg")
+
+#PosixPath('output_dir/g16_suvi_color_2024-10-03T122712Z.jpeg')
 ```
 
 <br>

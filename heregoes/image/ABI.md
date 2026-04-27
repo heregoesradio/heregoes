@@ -43,7 +43,7 @@ from heregoes.image import ABINaturalRGB
 lat_bounds = [upper_left_lat, lower_right_lat]
 lon_bounds = [upper_left_lon, lower_right_lon]
 
-#optionally set gamma to 3/4 and scale up green and blue to the spatial resolution of the red channel
+#optionally set gamma to 3/4 and scale up green and blue to the higher resolution red channel
 img = ABINaturalRGB(
     "OR_ABI-L1b-RadC-M6C02[...].nc",
     "OR_ABI-L1b-RadC-M6C03[...].nc",
@@ -55,10 +55,10 @@ img = ABINaturalRGB(
 )
 
 #save to a JPEG
-img.save(filepath="path/to/images/conus.jpg")
+img.save(filepath="path/to/images/conus-rgb-crop.jpg")
 
 #or PNG (slower)
-img.save(filepath="path/to/images/conus.png")
+img.save(filepath="path/to/images/conus-rgb-crop.png")
 ```
 
 <a href="https://static.heregoesradio.com/abi/conus/g16_abi_conus_color_2019-09-04T170111Z.jpeg">

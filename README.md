@@ -68,7 +68,7 @@ conda activate heregoes-env
 ```
 
 ### Environmental variables
-Set `HEREGOES_ENV_PARALLEL=False` to disable parallel execution,
+Optionally set `HEREGOES_ENV_PARALLEL=False` to disable parallel execution,
 or set `HEREGOES_ENV_NUM_CPUS=n` to limit the CPUs used to `n`.
 
 ### netCDF input
