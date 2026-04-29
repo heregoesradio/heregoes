@@ -28,7 +28,7 @@ from numpy.typing import NDArray
 from scipy import ndimage
 
 from heregoes import load
-from heregoes.core.types import SUVIInputType, SUVIL1bData
+from heregoes.core.types import SUVIInputType
 from heregoes.goesr import suvi
 from heregoes.image._image import _Image
 from heregoes.util import make_8bit, make_rgb, max_time_delta
