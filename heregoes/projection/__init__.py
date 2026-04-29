@@ -1,5 +1,5 @@
 """
-Projection to and from the ABI Fixed Grid
+Resample Numpy arrays to and from the geostationary projection
 """
 
 from ._projection import ABIProjection

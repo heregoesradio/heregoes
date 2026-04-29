@@ -1,5 +1,5 @@
 """
-Imagery outputs for ABI, SUVI
+Imagery outputs from ABI and SUVI L1b radiance
 """
 
 from ._abiimage import ABIImage, ABINaturalRGB

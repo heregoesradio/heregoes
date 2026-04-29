@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""GOES-R specific conversions and corrections for netCDF data on top of an NCInterface"""
+"""GOES-R specific conversions and corrections for netCDF data in a walkable interface"""
 
 import datetime
 import re
@@ -27,7 +27,7 @@ import re
 import numpy as np
 
 from heregoes.core import NCInterface
-from heregoes.goesr import coefficients
+from heregoes.goesr import _coefficients
 
 noaa_time_format = "%Y-%m-%dT%H:%M:%S.%fZ"
 cspp_time_format = "%Y-%m-%d %H:%M:%S.%f"
@@ -80,7 +80,7 @@ class GOESRData(NCInterface):
 
 
 class ABIData(GOESRData):
-    """Custom ABI attributes on top of GOES-R ABI netCDF"""
+    """Custom ABI attributes on top of ABI netCDF"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -118,12 +118,14 @@ class ABIData(GOESRData):
 
 
 class ABIL1bData(ABIData):
+    """Custom L1b attributes on top of ABI netCDF"""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._band_id_str = "C" + str(self["band_id"][...].item()).zfill(2)
 
-        self.instrument_coefficients = coefficients.ABICoeff(
+        self.instrument_coefficients = _coefficients.ABICoeff(
             self.platform_ID, self["band_id"][...].item()
         )
 
@@ -133,7 +135,7 @@ class ABIL2Data(ABIData):
 
 
 class SUVIL1bData(GOESRData):
-    """Custom SUVI attributes on top of GOES-R SUVI netCDF"""
+    """Custom L1b attributes on top of SUVI netCDF"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -145,6 +147,6 @@ class SUVIL1bData(GOESRData):
             self._wavelength_str = "304"
             self["WAVELNTH"][...] = 304
 
-        self.instrument_coefficients = coefficients.SUVICoeff(
+        self.instrument_coefficients = _coefficients.SUVICoeff(
             self["WAVELNTH"][...].item()
         )

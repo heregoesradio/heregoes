@@ -26,6 +26,7 @@ import astropy.units as u
 import numpy as np
 from astropy import coordinates
 from astropy.time import Time
+from numpy.typing import NDArray
 
 from heregoes import load
 from heregoes.core.types import ABIInputType, FixedGridDataType, FixedGridIndexType
@@ -45,59 +46,7 @@ from heregoes.util import nearest_2d_search
 
 class ABINavigation:
     """
-    ### Navigation and indexing with parallax correction on the ABI Fixed Grid
-
-    ### Parameters:
-        - `abi_data`:
-            - Either a str or Path referencing an ABI L1b/L2+ netCDF file,
-            - or the `ABIL1bData` or `ABIL2Data` object formed by `heregoes.load()` on the path
-
-        - `index` (optional): 2D array index or slice to select a subset of the ABI Fixed Grid, e.g.:
-            - `(y, x)`
-            - `np.s_[y1:y2, x1:x2]`
-            - `(slice(y1, y2, None), slice(x1, x2, None))`
-
-        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use geodetic latitude and longitude (degrees) to select a point or slice of the Fixed Grid, e.g.:
-            - `lat_bounds=point_lat`, `lon_bounds=point_lon`
-            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
-
-        - `height_m` (optional): If subsetting the navigation by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no correction)
-            - `height_m=1234.0`
-            - `height_m=[ul_m, lr_m]`
-
-        - `precise_sun` (optional): Whether to calculate solar position using Equation of Time with Pyorbital (`False`, default) or real ephemeris with Astropy (`True`, slower)
-
-        - `time` (optional): UTC time for which the Sun position is valid. The product midpoint time is used if not provided
-
-        - `degrees` (optional): Whether to return calculated Sun/satellite vector angles in radians or degrees. Default `False`
-
-        - `resample_nav` (optional): Determines whether to resample the navigation to fit the ABI image (`True`), or resample the ABI image to fit the navigation (`False`, default)
-            - *Only takes effect when `lat_bounds` and `lon_bounds` are provided with `height_m` for parallax correction*
-
-    ### Attributes:
-        - `y_rad`, `x_rad`:
-            - Fixed Grid (y, x) coordinates in radians
-
-        - `index`:
-            - The currently selected index or slice of the Fixed Grid. May be derived from geodetic coordinates if `lat_bounds` and `lon_bounds` are provided
-
-        - `nav_index`:
-            - The Fixed Grid index or slice used for navigation. Equal to `index` unless parallax correction occurred
-
-        - `lat_deg`, `lon_deg`:
-            - Geodetic coordinates navigated from Fixed Grid instrument scan angles
-
-        - `sat_za`, `sat_az`:
-            - Satellite zenith angle and azimuth at the center of each pixel. Returned in radians if the `degrees` argument was `False` (default)
-
-        - `sun_za`, `sun_az`:
-            - Sun zenith angle and azimuth at the center of each pixel. Returned in radians if the `degrees` argument was `False` (default)
-
-        - `area_m2`:
-            - The effective ground area of each Fixed Grid pixel in meters squared, increasing from nadir
-
-        - `along_track_m`, `cross_track_m`:
-            - The effective along-track width and cross-track height of each pixel in meters
+    Navigation and indexing with parallax correction on the ABI Fixed Grid
     """
 
     # TODO: implement pixelwise acquisition time given in the L1b reprocessed (RP) product
@@ -114,6 +63,29 @@ class ABINavigation:
         degrees: Optional[bool] = False,
         resample_nav: Optional[bool] = False,
     ):
+        """
+        #### Parameters:
+        - `abi_data`: Either a `str` or `Path` referencing an ABI L1b/L2+ netCDF file, or one already loaded by `heregoes.load()`
+
+        - `index` (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:
+            - `np.s_[y1:y2, x1:x2]`
+            - `(slice(y1, y2, None), slice(x1, x2, None))`
+
+        - `lat_bounds`, `lon_bounds` (optional, degrees): Instead of `index`, use a geographic bounding box to select a slice of the Fixed Grid, e.g.:
+            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+
+        - `height_m` (optional): If subsetting by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
+            - `height_m=[ul_m, lr_m]`
+
+        - `precise_sun` (optional): Whether to calculate solar position using Equation of Time with Pyorbital (`False`, default) or real ephemeris with Astropy (`True`, slower)
+
+        - `time` (optional): UTC `datetime` for which the Sun position is valid. The product midpoint time is used if not provided
+
+        - `degrees` (optional): Whether to return calculated Sun/satellite vector angles in radians or degrees. Default `False`
+
+        - `resample_nav` (optional): Determines whether to resample the navigation to fit the ABI image (`True`), or resample the ABI image to fit the navigation (`False`, default)
+            - *Only takes effect when `lat_bounds` and `lon_bounds` are provided with `height_m` for parallax correction*
+        """
         self.abi_data = load(abi_data)
         self.lat_bounds = lat_bounds
         self.lon_bounds = lon_bounds
@@ -158,13 +130,11 @@ class ABINavigation:
 
             if self.lat_bounds.shape != self.lon_bounds.shape:
                 raise ValueError(
-                    "`self.lat_bounds` and `self.lon_bounds` must be the same shape."
+                    "`lat_bounds` and `lon_bounds` must be the same shape."
                 )
 
             if np.isnan(self.lat_bounds).any() | np.isnan(self.lon_bounds).any():
-                raise ValueError(
-                    "`self.lat_bounds` and `self.lon_bounds` cannot contain NaN."
-                )
+                raise ValueError("`lat_bounds` and `lon_bounds` cannot contain NaN.")
 
             if index is not None:
                 raise ValueError(
@@ -284,21 +254,30 @@ class ABINavigation:
             )
 
     @property
-    def y_rad(self):
+    def y_rad(self) -> NDArray:
+        """
+        Fixed Grid y coordinates in radians
+        """
         if self._y_rad is None:
             self._setup()
 
         return self._y_rad
 
     @property
-    def x_rad(self):
+    def x_rad(self) -> NDArray:
+        """
+        Fixed Grid x coordinates in radians
+        """
         if self._x_rad is None:
             self._setup()
 
         return self._x_rad
 
     @property
-    def index(self):
+    def index(self) -> FixedGridIndexType:
+        """
+        The currently selected index or slice of the Fixed Grid. May be derived from geodetic coordinates if `lat_bounds` and `lon_bounds` are provided
+        """
         if self._index is None and not self._index_mode:
             self._setup()
 
@@ -309,28 +288,40 @@ class ABINavigation:
         self._index = value
 
     @property
-    def nav_index(self):
+    def nav_index(self) -> FixedGridIndexType:
+        """
+        The Fixed Grid index or slice used for navigation. Equal to `index` unless parallax correction occurred
+        """
         if self._nav_index is None and not self._index_mode:
             self._setup()
 
         return self._nav_index
 
     @property
-    def lat_deg(self):
+    def lat_deg(self) -> NDArray:
+        """
+        Geodetic latitude (degrees) at the center of each pixel in the scene
+        """
         if self._lat_deg is None:
             self._setup()
 
         return self._lat_deg
 
     @property
-    def lon_deg(self):
+    def lon_deg(self) -> NDArray:
+        """
+        Geodetic longitude (degrees) at the center of each pixel in the scene
+        """
         if self._lon_deg is None:
             self._setup()
 
         return self._lon_deg
 
     @property
-    def cross_track_m(self):
+    def cross_track_m(self) -> NDArray:
+        """
+        The effective cross-track ground distance (meters) along the image y-axis
+        """
         if self._cross_track_m is None:
             self._cross_track_m = pixel_height(
                 y_rad=self.y_rad,
@@ -344,7 +335,10 @@ class ABINavigation:
         return self._cross_track_m
 
     @property
-    def along_track_m(self):
+    def along_track_m(self) -> NDArray:
+        """
+        The effective along-track ground distance (meters) along the image x-axis
+        """
         if self._along_track_m is None:
             self._along_track_m = pixel_width(
                 x_rad=self.x_rad,
@@ -358,7 +352,10 @@ class ABINavigation:
         return self._along_track_m
 
     @property
-    def area_m2(self):
+    def area_m2(self) -> NDArray:
+        """
+        The effective ground area of each pixel in meters squared, increasing from nadir
+        """
         if self._area_m2 is None:
             self._area_m2 = pixel_area(
                 cross_track=self.cross_track_m,
@@ -368,28 +365,40 @@ class ABINavigation:
         return self._area_m2
 
     @property
-    def sat_za(self):
+    def sat_za(self) -> NDArray:
+        """
+        Local satellite zenith angle for each pixel. Returns in radians if `degrees` was `False` (default)
+        """
         if self._sat_za is None:
             self._calc_sat()
 
         return self._sat_za
 
     @property
-    def sat_az(self):
+    def sat_az(self) -> NDArray:
+        """
+        Local satellite azimuth for each pixel. Returns in radians if `degrees` was `False` (default)
+        """
         if self._sat_az is None:
             self._calc_sat()
 
         return self._sat_az
 
     @property
-    def sun_za(self):
+    def sun_za(self) -> NDArray:
+        """
+        Local Sun zenith angle for each pixel. Returns in radians if `degrees` was `False` (default)
+        """
         if self._sun_za is None:
             self._calc_sun()
 
         return self._sun_za
 
     @property
-    def sun_az(self):
+    def sun_az(self) -> NDArray:
+        """
+        Local Sun azimuth for each pixel. Returns in radians if `degrees` was `False` (default)
+        """
         if self._sun_az is None:
             self._calc_sun()
 

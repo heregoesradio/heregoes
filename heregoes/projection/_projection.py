@@ -19,10 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from os import PathLike
 from typing import Annotated, Optional
 
 import numpy as np
-import numpy.typing as npt
+from numpy.typing import NDArray
 from osgeo import gdal
 
 gdal.UseExceptions()
@@ -40,28 +41,7 @@ from heregoes.projection._funcs import (
 
 class ABIProjection(ABINavigation):
     """
-    ### Resample Numpy arrays to and from the projection of an ABI scene
-
-    ### Parameters:
-        - `abi_data`:
-            - Either a str or Path referencing an ABI L1b/L2+ netCDF file,
-            - or the `ABIL1bData` or `ABIL2Data` object formed by `heregoes.load()` on the path
-
-        - `index` (optional): 2D array index or slice to select a subset of the ABI Fixed Grid, e.g.:
-            - `np.s_[y1:y2, x1:x2]`
-            - `(slice(y1, y2, None), slice(x1, x2, None))`
-
-        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use geodetic latitude and longitude (degrees) to select a slice of the Fixed Grid, e.g.:
-            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
-
-        - `height_m` (optional): If subsetting the projection by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no correction)
-            - `height_m=[ul_m, lr_m]`
-
-    ### Attributes:
-        - `y_image_bounds`, `x_image_bounds`:
-            - The vertical and horizontal extents of the ABI image in radians
-        - `y_projected_bounds`, `x_projected_bounds`:
-            - The vertical and horizontal extents of the ABI projection in false northing and easting (meters)
+    Warp Numpy arrays to and from the projection of an ABI scene
     """
 
     def __init__(
@@ -117,37 +97,66 @@ class ABIProjection(ABINavigation):
         self._x_projected_bounds = self._x_image_bounds * h
 
     @property
-    def y_image_bounds(self):
+    def y_image_bounds(self) -> NDArray:
+        """
+        Vertical extents of the ABI scene in radians
+        """
         if self._y_image_bounds is None:
             self._set_bounds()
         return self._y_image_bounds
 
     @property
-    def x_image_bounds(self):
+    def x_image_bounds(self) -> NDArray:
+        """
+        Horizontal extents of the ABI scene in radians
+        """
         if self._x_image_bounds is None:
             self._set_bounds()
         return self._x_image_bounds
 
     @property
-    def y_projected_bounds(self):
+    def y_projected_bounds(self) -> NDArray:
+        """
+        Vertical extents of the projected ABI scene in false northing and easting (meters)
+        """
         if self._y_projected_bounds is None:
             self._set_bounds()
         return self._y_projected_bounds
 
     @property
-    def x_projected_bounds(self):
+    def x_projected_bounds(self) -> NDArray:
+        """
+        Horizontal extents of the projected ABI scene in false northing and easting (meters)
+        """
         if self._x_projected_bounds is None:
             self._set_bounds()
         return self._x_projected_bounds
 
     @property
-    def image_shape_px(self):
+    def image_shape_px(self) -> tuple[int, int]:
+        """
+        Height, width of the ABI scene in Fixed Grid pixels
+        """
         if self._image_shape_px is None:
             self._image_shape_px = self.y_rad.size, self.x_rad.size
 
         return self._image_shape_px
 
-    def resample2cog(self, source, filepath, resample_algo="lanczos", **kwargs):
+    def resample2cog(
+        self,
+        source: str | NDArray,
+        filepath: PathLike | str,
+        resample_algo: str = "lanczos",
+        **kwargs,
+    ) -> PathLike:
+        """
+        Resample an `NDArray` from geostationary to equirectangular projection and save to a Cloud-Optimized GeoTIFF
+
+        #### Parameters:
+        - `source`: `NDArray` to resample
+        - `filepath`: `str` or `PathLike` object to save the TIFF to
+        - `resample_algo` (optional): GDAL interpolation method to use during the warp
+        """
         resampled = self.resample(
             source,
             target="latlon",
@@ -162,23 +171,59 @@ class ABIProjection(ABINavigation):
             overview_resampling_algo=resample_algo,
         )
 
-    def resample2latlon(self, source, resample_algo="bilinear", **kwargs):
+    def resample2latlon(
+        self, source: str | NDArray, resample_algo: str = "bilinear", **kwargs
+    ) -> NDArray:
+        """
+        Resample an `NDArray` from geostationary to equirectangular projection.
+
+        #### Parameters:
+        - `source`: `NDArray` to resample
+        - `resample_algo` (optional): GDAL interpolation method to use during the warp
+        """
         resampled = self.resample(
             source, target="latlon", resample_algo=resample_algo, **kwargs
         )
 
         return resampled
 
-    def resample2abi(self, source, resample_algo="nearest", **kwargs):
+    def resample2abi(
+        self,
+        source: str | NDArray,
+        resample_algo: str = "nearest",
+        lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            90.0,
+            -90.0,
+        ],
+        lon_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            -180.0,
+            180.0,
+        ],
+        **kwargs,
+    ) -> NDArray:
+        """
+        Resample an `NDArray` from equirectangular to the geostationary projection of the ABI scene.
+
+        #### Parameters:
+        - `source`: `NDArray` to resample
+        - `lat_bounds`, `lon_bounds` (optional): Upper left and lower right lat/lon extents of the equirectangular source data
+            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+        - `resample_algo` (optional): GDAL interpolation method to use during the warp
+        """
         resampled = self.resample(
-            source, target="abi", resample_algo=resample_algo, **kwargs
+            source,
+            target="abi",
+            resample_algo=resample_algo,
+            lat_bounds=lat_bounds,
+            lon_bounds=lon_bounds,
+            **kwargs,
         )
 
         return resampled
 
     def resample(
         self,
-        source: str | npt.NDArray,
+        source: str | NDArray,
         target: str,
         resample_algo: str = "bilinear",
         return_type: str = "numpy",

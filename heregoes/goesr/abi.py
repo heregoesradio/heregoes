@@ -29,19 +29,19 @@ from heregoes.util import make_8bit, make_rgb
 
 @heregoes_njit
 def rad2rf(rad, esd, esun):  # pragma: no cover
-    # converts spectral radiance "rad" to Reflectance Factor (RF) following CMIP ATBD eq. 3-4
+    """Converts spectral radiance "rad" to Reflectance Factor (RF) following CMIP ATBD eq. 3-4"""
     return ((rad * np.pi * np.square(esd)) / esun).astype(np.float32)
 
 
 @heregoes_njit
 def rf2rad(rf, esd, esun):  # pragma: no cover
-    # converts Reflectance Factor (RF) to spectral radiance "rad" following CMIP ATBD eq. 3-3
+    """Converts Reflectance Factor (RF) to spectral radiance "rad" following CMIP ATBD eq. 3-3"""
     return ((rf * esun) / (np.pi * np.square(esd))).astype(np.float32)
 
 
 @heregoes_njit
 def rf2bv(rf, gamma=1.0):  # pragma: no cover
-    # converts Reflectance Factor (RF) to an 8-bit representation (Brightness Value (BV)) following CMIP ATBD eq. 3-22
+    """Converts Reflectance Factor (RF) to an 8-bit representation (Brightness Value (BV)) following CMIP ATBD eq. 3-22"""
     if gamma == 1.0:
         return make_8bit(rf * 255)
 
@@ -56,7 +56,7 @@ def rf2bv(rf, gamma=1.0):  # pragma: no cover
 
 @heregoes_njit
 def rad2bt(rad, planck_fk1, planck_fk2, planck_bc1, planck_bc2):  # pragma: no cover
-    # converts spectral radiance "rad" to Brightness Temperature (BT) following CMIP ATBD eq. 3-5
+    """Converts spectral radiance "rad" to Brightness Temperature (BT) following CMIP ATBD eq. 3-5"""
     return (
         (planck_fk2 / (np.log((planck_fk1 / rad) + 1.0)) - planck_bc1) / planck_bc2
     ).astype(np.float32)
@@ -64,7 +64,7 @@ def rad2bt(rad, planck_fk1, planck_fk2, planck_bc1, planck_bc2):  # pragma: no c
 
 @heregoes_njit
 def bt2rad(bt, planck_fk1, planck_fk2, planck_bc1, planck_bc2):  # pragma: no cover
-    # converts Brightness Temperature (BT) to spectral radiance "rad" following CMIP ATBD eq. 3-6
+    """Converts Brightness Temperature (BT) to spectral radiance "rad" following CMIP ATBD eq. 3-6"""
     return (
         planck_fk1 / (np.exp(planck_fk2 / (planck_bc1 + (planck_bc2 * bt))) - 1.0)
     ).astype(np.float32)
@@ -72,27 +72,29 @@ def bt2rad(bt, planck_fk1, planck_fk2, planck_bc1, planck_bc2):  # pragma: no co
 
 @heregoes_njit
 def bt2bv(bt):  # pragma: no cover
-    # converts Brightness Temperature (BT) to an 8-bit representation (Brightness Value (BV)) following CMIP ATBD eq. 3-19 and 3-20
+    """Converts Brightness Temperature (BT) to an 8-bit representation (Brightness Value (BV)) following CMIP ATBD eq. 3-19 and 3-20"""
     return make_8bit(np.where(bt >= 242.0, (660.0 - (2.0 * bt)), (418.0 - bt)))
 
 
 @heregoes_njit
 def rad_wvn2wvl(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
-    # converts spectral radiance "rad" in mW/m^2/sr/cm^-1 to W/m^2/sr/μm
-    # https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf
+    """Converts spectral radiance "rad" in mW/m^2/sr/cm^-1 to W/m^2/sr/μm following
+    https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf
+    """
     return (rad / 1000.0 * eqw_wvn / eqw_wvl).astype(np.float32)
 
 
 @heregoes_njit
 def rad_wvl2wvn(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
-    # converts spectral radiance "rad" in W/m^2/sr/μm to mW/m^2/sr/cm^-1
-    # https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf
+    """Converts spectral radiance "rad" in W/m^2/sr/μm to mW/m^2/sr/cm^-1 following
+    https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf
+    """
     return (rad * 1000.0 / eqw_wvn * eqw_wvl).astype(np.float32)
 
 
 @heregoes_njit
 def bv2rgb(r_bv, g_bv, b_bv, r_coeff, g_coeff, b_coeff):  # pragma: no cover
-    # from brightness value space, return the fractional combination "green" band RGB Bah et. al (2018)
+    """From brightness value space, return the fractional combination "green" band RGB following Bah et. al (2018)"""
     g_bv = (r_bv * r_coeff) + (g_bv * g_coeff) + (b_bv * b_coeff)
 
     return make_8bit(make_rgb(r_bv, g_bv, b_bv))
