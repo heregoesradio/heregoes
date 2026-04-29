@@ -1,10 +1,10 @@
 name: website
 
-# build the documentation whenever there are new commits on pdoc
+# build the documentation whenever there are new commits on main
 on:
   push:
     branches:
-      - pdoc
+      - main
     # Alternative: only build for tags.
     # tags:
     #   - '*'
