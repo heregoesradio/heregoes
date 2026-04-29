@@ -36,7 +36,7 @@
 ## Documentation
 - Imagery examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md)
 - [ABI navigation, subsetting, and parallax correction](https://github.com/heregoesradio/heregoes/blob/main/heregoes/navigation/README.md)
-- More soon!
+- [Library reference](https://docs.heregoesradio.com)
 
 ## Demos
 - [Terrain correction of the ABI Fixed Grid using heregoes](https://github.com/heregoesradio/heregoes/blob/main/demo/README.md)

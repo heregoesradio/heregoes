@@ -23,6 +23,10 @@ export HEREGOES_ENV_NUM_CPUS=16
 pytest --capture=no --log-cli-level=INFO --cov --cov-report html:coverage/html --cov-report xml:coverage/coverage.xml tests/
 genbadge coverage -v -i coverage/coverage.xml -o coverage/coverage-badge.svg
 
+#build docs
+cd "${INIT_DIR}/../pdoc/"
+./pdoc.sh
+
 #run demo and handle output
-cd demo
+cd "${INIT_DIR}/../demo/"
 ./run.sh
