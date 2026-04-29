@@ -150,7 +150,7 @@ class ABIProjection(ABINavigation):
         **kwargs,
     ) -> PathLike:
         """
-        Resample an `NDArray` from geostationary to equirectangular projection and save to a Cloud-Optimized GeoTIFF
+        Resample an `NDArray` from geostationary to equirectangular projection and save to a Cloud-Optimized GeoTIFF (COG)
 
         #### Parameters:
         - `source`: `NDArray` to resample
@@ -175,7 +175,7 @@ class ABIProjection(ABINavigation):
         self, source: str | NDArray, resample_algo: str = "bilinear", **kwargs
     ) -> NDArray:
         """
-        Resample an `NDArray` from geostationary to equirectangular projection.
+        Resample an `NDArray` from geostationary to equirectangular projection
 
         #### Parameters:
         - `source`: `NDArray` to resample
@@ -202,7 +202,7 @@ class ABIProjection(ABINavigation):
         **kwargs,
     ) -> NDArray:
         """
-        Resample an `NDArray` from equirectangular to the geostationary projection of the ABI scene.
+        Resample an `NDArray` from equirectangular to the geostationary projection of the ABI scene
 
         #### Parameters:
         - `source`: `NDArray` to resample
