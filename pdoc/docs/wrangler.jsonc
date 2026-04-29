@@ -10,5 +10,14 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "routes": [
+    {
+      "pattern": "docs.heregoesradio.com",
+      "custom_domain": true
+    }
+  ],
+  {
+    "workers_dev": false
+  }
 }
