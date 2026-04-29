@@ -24,10 +24,11 @@ from typing import Optional
 
 import numpy as np
 from astropy.convolution import Gaussian2DKernel, interpolate_replace_nans
+from numpy.typing import NDArray
 from scipy import ndimage
 
 from heregoes import load
-from heregoes.core.types import SUVIInputType
+from heregoes.core.types import SUVIInputType, SUVIL1bData
 from heregoes.goesr import suvi
 from heregoes.image._image import _Image
 from heregoes.util import make_8bit, make_rgb, max_time_delta
@@ -37,25 +38,31 @@ safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
 
 class SUVIImage(_Image):
-    """
-    ### SUVI L1b radiance imagery with DQF correction
+    """Renders the an 8-bit SUVI image from L1b radiance netCDF"""
 
-    Creates a 1-second exposure 8-bit SUVI image made to look similar to what is shown on the SWPC website:
-    https://www.swpc.noaa.gov/products/goes-solar-ultraviolet-imager-suvi
+    def __init__(
+        self,
+        suvi_data: SUVIInputType,
+        shift: bool = True,
+        shift_limit: int = 100,
+        flip: bool = True,
+        dqf_correction: bool = True,
+        input_range: Optional[tuple[float, float]] = None,
+        asinh_a: Optional[float] = None,
+        output_range: Optional[tuple[float, float]] = None,
+    ):
+        """
+        We adopt the same inverse hyperbolic sine enhancement as in `astropy.visualization.stretch.AsinhStretch`:
 
-    We adopt the same inverse hyperbolic sine enhancement as in `astropy.visualization.stretch.AsinhStretch`:
+        `asinh(rad / α) / asinh(1 / α)`
 
-    `asinh(rad / α) / asinh(1 / α)`
+        where the alpha term is given by the argument `asinh_a`, and rad is SUVI radiance counts normalized to `input_range`.
+        A second linear normalization occurs after the asinh stretch using `output_range`.
 
-    where the alpha term is given by the argument `asinh_a`, and rad is SUVI radiance normalized to `input_range`.
-    A second linear normalization occurs after the asinh stretch using `output_range`.
+        If not provided as arguments, `input_range`, `asinh_a`, and `output_range` use the default per-channel coefficients defined in `heregoes.goesr.coefficients.SUVICoeff`.
 
-    If not provided as arguments, `input_range`, `asinh_a`, and `output_range` use the default per-channel coefficients defined in `heregoes.goesr.coefficients.SUVICoeff`.
-
-    ### Parameters:
-        - `suvi_data`:
-            - Either a str or Path referencing a 1-second exposure SUVI L1b Solar Imagery netCDF file,
-            - or the `SUVIL1bData` object formed by `heregoes.load()` on the path
+        #### Parameters:
+        - `suvi_data`: Either a `str` or `Path` referencing a 1-second exposure SUVI L1b Solar Imagery netCDF file, or one already loaded by `heregoes.load()`
 
         - `shift` (optional):
             - Whether to try moving the center of the Sun to the center of the image. Default `True`
@@ -77,32 +84,7 @@ class SUVIImage(_Image):
 
         - `output_range` (optional):
             - A tuple of the (min, max) normalized brightness value (0.0...1.0) at which to clip the output image
-
-    ### Attributes:
-        - `rad`:
-            - Radiance in units `W m-2 sr-1`
-
-        - `dqf`:
-            - Data Quality Flag array delivered with the product
-
-        - `quality`:
-            - The ratio of masked to total image array elements
-
-        - `bv` (Brightness Value):
-            - Pixel values 0-255
-    """
-
-    def __init__(
-        self,
-        suvi_data: SUVIInputType,
-        shift: bool = True,
-        shift_limit: int = 100,
-        flip: bool = True,
-        dqf_correction: bool = True,
-        input_range: Optional[tuple[float, float]] = None,
-        asinh_a: Optional[float] = None,
-        output_range: Optional[tuple[float, float]] = None,
-    ):
+        """
         self._bv = None
 
         self.suvi_data = load(suvi_data)
@@ -130,9 +112,21 @@ class SUVIImage(_Image):
             else self.suvi_data.instrument_coefficients.output_range
         )
 
-        self.rad = self.suvi_data["RAD"][...]
-        self.dqf = self.suvi_data["DQF"][...]
-        self.quality = self.suvi_data["RAD"].pct_unmasked
+        self.rad: NDArray = self.suvi_data["RAD"][...]
+        """
+        Radiance in units `W m-2 sr-1`
+        """
+
+        self.dqf: NDArray = self.suvi_data["DQF"][...]
+        """
+        Data Quality Flag array delivered with the product
+        """
+
+        self.quality: float = self.suvi_data["RAD"].pct_unmasked
+        """
+        The ratio of masked to total image array elements
+        """
+
         x_offset = 640 - self.suvi_data["CRPIX1"][...]
         y_offset = 640 - self.suvi_data["CRPIX2"][...]
 
@@ -173,7 +167,10 @@ class SUVIImage(_Image):
             self.rad = np.flipud(self.rad)
 
     @property
-    def bv(self):
+    def bv(self) -> NDArray:
+        """
+        Pixel values 0-255
+        """
         if self._bv is None:
             self._bv = suvi.rad2bv(
                 self.rad,
@@ -191,23 +188,17 @@ class SUVIImage(_Image):
 
 class SUVIRGB(_Image):
     """
-    ### Creates a custom SUVI RGB from three SUVIImage objects
-
-    ### Parameters:
-        - `red_image`, `green_image`, `blue_image`:
-            - SUVIImage objects to use for the red, green, and blue channels
-
-    ### Attributes:
-        - `quality`:
-            - The ratio of masked to total image pixels across red, green, and blue components
-
-        - `bv` (Brightness Value):
-            - Color pixel values 0-255 with dimensions in BGR order
+    Creates a custom SUVI RGB from three SUVIImage objects
     """
 
     def __init__(
         self, red_image: SUVIImage, green_image: SUVIImage, blue_image: SUVIImage
     ):
+        """
+        #### Parameters:
+        - `red_image`, `green_image`, `blue_image`:
+            - SUVIImage objects to use for the red, green, and blue channels
+        """
         self.suvi_data = red_image.suvi_data
 
         self.time = np.array(
@@ -225,17 +216,23 @@ class SUVIRGB(_Image):
                 f"SUVI images taken outside of a 20-minute window will blur the RGB."
             )
 
-        self.bv = make_8bit(
+        self.bv: NDArray = make_8bit(
             make_rgb(
                 red_image.bv,
                 green_image.bv,
                 blue_image.bv,
             )
         )
+        """
+        Color pixel values 0-255 with dimensions in BGR order        
+        """
 
-        self.quality = (
+        self.quality: float = (
             sum([red_image.quality, green_image.quality, blue_image.quality]) / 3
         )
+        """
+        The ratio of masked to total image pixels across red, green, and blue components
+        """
 
         # update some meta to reflect that this is an RGB
         self.suvi_data["WAVELNTH"][...] = np.atleast_1d(0)

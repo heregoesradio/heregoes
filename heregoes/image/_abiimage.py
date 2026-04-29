@@ -24,6 +24,7 @@ from typing import Optional
 
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 
 from heregoes.core.types import ABIL1bInputType, FixedGridDataType, FixedGridIndexType
 from heregoes.goesr import abi
@@ -70,49 +71,8 @@ class _BaseABIImage(_Image, ABIProjection):
 
 class ABIImage(_BaseABIImage):
     """
-    ### Creates Cloud and Moisture Imagery (CMI)
-
-    Follows the [CMIP ATBD](https://www.star.nesdis.noaa.gov/goesr/docs/ATBD/Imagery.pdf).
-
-    ### Parameters:
-        - `abi_data`:
-            - Either a str or Path referencing an ABI L1b netCDF file,
-            - or the `ABIL1bData` object formed by `heregoes.load()` on the path
-
-        - `index` (optional): 2D slice to select a subset of the ABI image, e.g.:
-            - `np.s_[y1:y2, x1:x2]`
-
-        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use geodetic latitude and longitude (degrees) to select a slice of the ABI image, e.g.:
-            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
-
-        - `height_m` (optional): If subsetting the image by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
-            - `height_m=1234.0`
-            - `height_m=[ul_m, lr_m]`
-
-        - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
-
-        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
-
-        - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `False`
-
-    ### Attributes:
-        - `rad`:
-            - Spectral radiance in either `W m-2 sr-1 um-1` for ABI bands 1-6,
-            - or `mW m-2 sr-1 (cm-1)-1` for emissive bands 7-16
-
-        - `dqf`:
-            - Data Quality Flag array delivered with the product
-
-        - `quality`:
-            - The ratio of masked to total image array elements
-
-        - `cmi` (Cloud and Moisture Imagery):
-            - Either the Lambertian-equivalent reflectance factor (RF) for ABI bands 1-6,
-            - or blackbody brightness temperature (BT) in Kelvin for emissive bands 7-16
-
-        - `bv` (Brightness Value):
-            - Pixel values 0-255 for either reflectance factor with a gamma correction,
-            - or brightness temperature with a bilinear tone curve
+    Creates 8-bit Cloud and Moisture Imagery (CMI) following the [ATBD](https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf).
+    Inherits from `heregoes.projection.ABIProjection` and `heregoes.navigation.ABINavigation`
     """
 
     def __init__(
@@ -127,6 +87,26 @@ class ABIImage(_BaseABIImage):
         black_space: bool = False,
         **kwargs,
     ):
+        """
+        #### Parameters:
+        - `abi_data`: Either a `str` or `Path` referencing an ABI L1b netCDF file, or one already loaded by `heregoes.load()`
+
+        - `index` (optional): 2D slice to select a subset of the ABI image, e.g.:
+            - `np.s_[y1:y2, x1:x2]`
+
+        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use a geographic bounding box to select a slice of the ABI image, e.g.:
+            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+
+        - `height_m` (optional): If subsetting the image by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
+            - `height_m=1234.0`
+            - `height_m=[ul_m, lr_m]`
+
+        - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
+
+        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
+
+        - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `False`
+        """
         super().__init__(
             abi_data,
             index=index,
@@ -145,8 +125,12 @@ class ABIImage(_BaseABIImage):
         self._bv = None
 
         self._rad = self.abi_data["Rad"][self.index]
-        self.mask = self.abi_data["Rad"].mask
-        self.quality = self.abi_data["Rad"].pct_unmasked
+        self.mask: NDArray = self.abi_data["Rad"].mask
+
+        self.quality: float = self.abi_data["Rad"].pct_unmasked
+        """
+        The ratio of masked to total image array elements
+        """
 
         rad_range = np.array(
             self.abi_data["Rad"].valid_range * self.abi_data["Rad"].scale_factor
@@ -171,7 +155,11 @@ class ABIImage(_BaseABIImage):
         )
 
     @property
-    def rad(self):
+    def rad(self) -> NDArray:
+        """
+        Spectral radiance in either `W m-2 sr-1 um-1` for ABI bands 1-6,
+        or `mW m-2 sr-1 (cm-1)-1` for emissive bands 7-16
+        """
         if self._rad is None:
             self._rad = self.abi_data["Rad"][self.index]
 
@@ -182,7 +170,10 @@ class ABIImage(_BaseABIImage):
         self._rad = value
 
     @property
-    def dqf(self):
+    def dqf(self) -> NDArray:
+        """
+        Data Quality Flag array delivered with the product
+        """
         if self._dqf is None:
             self._dqf = self.abi_data["DQF"][self.index]
 
@@ -193,7 +184,11 @@ class ABIImage(_BaseABIImage):
         self._dqf = value
 
     @property
-    def cmi(self):
+    def cmi(self) -> NDArray:
+        """
+        Cloud and Moisture Imagery; either the Lambertian-equivalent reflectance factor (RF) for ABI bands 1-6,
+        or blackbody brightness temperature (BT) in Kelvin for emissive bands 7-16
+        """
         if self._cmi is None:
             if 1 <= self.abi_data["band_id"][...] <= 6:
                 self._cmi = abi.rad2rf(
@@ -220,7 +215,11 @@ class ABIImage(_BaseABIImage):
         self._cmi = value
 
     @property
-    def bv(self):
+    def bv(self) -> NDArray:
+        """
+        Pixel nrightness values 0-255 for either reflectance factor with a gamma correction,
+        or brightness temperature with a bilinear tone curve
+        """
         if self._bv is None:
             if 1 <= self.abi_data["band_id"][...] <= 6:
                 if self.normalize_rf or self.gamma == 1.0:
@@ -255,44 +254,8 @@ class ABIImage(_BaseABIImage):
 
 class ABINaturalRGB(_BaseABIImage):
     """
-    ### Creates the "natural" color RGB for ABI
-
-    Follows [Bah et. al (2018)](https://doi.org/10.1029/2018EA000379). RGB brightness value is stored in BGR order for OpenCV compatiblity.
-
-    ### Parameters:
-        - `red_data`, `green_data`, `blue_data`:
-            - For each of the red (0.64 μm), green (0.86 μm), and blue (0.47 μm) radiance components:
-                - Either a str or Path referencing an ABI L1b netCDF file,
-                - or the `ABIL1bData` object formed by `heregoes.load()` on the path
-
-        - `index` (optional): 2D slice to select a subset of the ABI image, e.g.:
-            - `np.s_[y1:y2, x1:x2]`
-
-        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use geodetic latitude and longitude (degrees) to select a slice of the ABI image, e.g.:
-            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
-
-        - `height_m` (optional): If subsetting the image by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
-            - `height_m=1234.0`
-            - `height_m=[ul_m, lr_m]`
-
-        - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
-
-        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
-
-        - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Default `False`
-
-        - `r_coeff`, `g_coeff`, `b_coeff` (optional): Coefficients for the fractional combination "green" band method described in Bah et. al (2018)
-
-        - `upscale` (optional): Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
-
-        - `upscale_algo` (optional): The OpenCV interpolation algorithm used for upscaling green and blue images, one of "area", "cubic", "lanczos", "linear", "nearest". Default "cubic"
-
-    ### Attributes:
-        - `quality`:
-            - The ratio of masked to total image pixels across red, green, and blue components
-
-        - `bv` (Brightness Value):
-            - Color pixel values 0-255 with dimensions in BGR order
+    Creates the "natural" color RGB for ABI following [Bah et. al (2018)](https://doi.org/10.1029/2018EA000379)
+    Inherits from `heregoes.projection.ABIProjection` and `heregoes.navigation.ABINavigation`
     """
 
     def __init__(
@@ -314,6 +277,33 @@ class ABINaturalRGB(_BaseABIImage):
         upscale_algo: str = "cubic",
         **kwargs,
     ):
+        """
+        #### Parameters:
+        - `red_data`, `green_data`, `blue_data`:
+            - For each of the red (0.64 μm), green (0.86 μm), and blue (0.47 μm) radiance components:
+                - Either a `str` or `Path` referencing an ABI L1b netCDF file, or one already loaded by `heregoes.load()`
+
+        - `index` (optional): 2D slice to select a subset of the ABI image, e.g.:
+            - `np.s_[y1:y2, x1:x2]`
+
+        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use a geographic bounding box to select a slice of the ABI image, e.g.:
+            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+
+        - `height_m` (optional): If subsetting the image by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
+            - `height_m=[ul_m, lr_m]`
+
+        - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
+
+        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
+
+        - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Default `False`
+
+        - `r_coeff`, `g_coeff`, `b_coeff` (optional): Coefficients for the fractional combination "green" band method described in Bah et. al (2018)
+
+        - `upscale` (optional): Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
+
+        - `upscale_algo` (optional): The OpenCV interpolation algorithm used for upscaling green and blue images, one of "area", "cubic", "lanczos", "linear", "nearest". Default "cubic"
+        """
         if upscale:
             nav_data = red_data
             scaler_500m = 1.0
@@ -402,7 +392,7 @@ class ABINaturalRGB(_BaseABIImage):
             interpolation=cv2_interpolation,
         )
 
-        self.bv = abi.bv2rgb(
+        self.bv: NDArray = abi.bv2rgb(
             r_bv=red_image.bv,
             g_bv=green_image.bv,
             b_bv=blue_image.bv,
@@ -410,9 +400,16 @@ class ABINaturalRGB(_BaseABIImage):
             g_coeff=g_coeff,
             b_coeff=b_coeff,
         )
-        self.quality = (
+        """
+        Color pixel brightness values 0-255 with dimensions in BGR order
+        """
+
+        self.quality: float = (
             sum([red_image.quality, green_image.quality, blue_image.quality]) / 3
         )
+        """
+        The ratio of masked to total image pixels across red, green, and blue components
+        """
 
         # update some meta to reflect that this is an RGB
         self.abi_data["band_id"][...] = np.atleast_1d(0)

@@ -1,5 +1,5 @@
 """
-Navigation, Sun-Earth, and satellite-Earth geometry on the ABI Fixed Grid
+Navigation, Sun-Earth, and satellite-Earth geometry
 """
 
 from ._navigation import ABINavigation

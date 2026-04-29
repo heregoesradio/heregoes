@@ -9,7 +9,7 @@ import numpy as np
 
 from heregoes.image import ABIImage
 
-#optionally subset with a 2D `index` slice
+#optionally subset with a 2D slice index
 y1, y2 = 0, 2000
 x1, x2 = 0, 2000
 index = np.s_[y1:y2, x1:x2]
