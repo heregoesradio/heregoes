@@ -217,7 +217,7 @@ class ABIImage(_BaseABIImage):
     @property
     def bv(self) -> NDArray:
         """
-        Pixel nrightness values 0-255 for either reflectance factor with a gamma correction,
+        Pixel brightness values 0-255 for either reflectance factor with a gamma correction,
         or brightness temperature with a bilinear tone curve
         """
         if self._bv is None:
