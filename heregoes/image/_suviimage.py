@@ -169,7 +169,7 @@ class SUVIImage(_Image):
     @property
     def bv(self) -> NDArray:
         """
-        Pixel values 0-255
+        Pixel brightness values 0-255
         """
         if self._bv is None:
             self._bv = suvi.rad2bv(
@@ -224,7 +224,7 @@ class SUVIRGB(_Image):
             )
         )
         """
-        Color pixel values 0-255 with dimensions in BGR order        
+        Color pixel brightness values 0-255 with dimensions in BGR order        
         """
 
         self.quality: float = (
