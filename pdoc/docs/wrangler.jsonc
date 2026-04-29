@@ -17,7 +17,5 @@
       "custom_domain": true
     }
   ],
-  {
-    "workers_dev": false
-  }
+  "workers_dev": false
 }
