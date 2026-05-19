@@ -16,7 +16,7 @@ Render the long-exposure (1-second) SUVI radiance image; shorter exposures for f
 from heregoes.image import SUVIImage
 
 img = SUVIImage("OR_SUVI-L1b-[...].nc")
-img.save("suvi.jpg")
+img.save("suvi.png")
 ```
 
 <a href="https://static.heregoesradio.com/suvi/g16_suvi_171_2024-10-03T122712Z.jpg">

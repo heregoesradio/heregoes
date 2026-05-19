@@ -17,10 +17,10 @@
     </a>
 </p>
 
-### Research quality GOES-R Earth and Sun imagery from netCDF
+### High performance GOES-R Earth and Sun imagery from netCDF
 
-- Originally developed for realtime GOES-R processing at [Here GOES Radiotelescope](https://heregoesradio.com/) (Dove & Neilson, 2020)
-- ABI features [tested](https://github.com/heregoesradio/heregoes/tree/main/tests) against ground targets and official data and literature
+- Developed at [Here GOES Radiotelescope (2020)](https://heregoesradio.com/) for realtime GOES-R processing with [CSPP Geo GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html)
+- ABI features [tested](https://github.com/heregoesradio/heregoes/tree/main/tests) against ground targets and operational data and literature
 - SUVI imagery in production at [UW–Madison SSEC](https://cimss.ssec.wisc.edu/satellite-blog/archives/53279) and tested for QC
 - Accelerated and parallelized with the [Numba](https://numba.pydata.org/) JIT compiler
 
@@ -28,10 +28,13 @@
 | Instrument | Products | Features|
 |:-----|----------|---------------------------------------------------------------|
 | ABI  | L1b      | Render Cloud and Moisture Imagery and "Natural" color RGB     |
-| ABI  | L1b, L2+ | Lat/lon and Fixed Grid subsetting with parallax correction    |
-| ABI  | L1b, L2+ | Pixelwise navigation, ground coverage, and look vectors       |
+| ABI  | L1b      | Export as high resolution Cloud-Optimized GeoTIFF (COG)       |
+| ABI  | L1b, L2+ | Subset with slice notation or lat/lon bounding box            |
+| ABI  | L1b, L2+ | Terrain correction for imagery and geolocation                |
+| ABI  | L1b, L2+ | Pixelwise ground area and look vectors for Sun and satellite  |
 | ABI  | L1b, L2+ | Resample Numpy arrays to and from the projection of ABI scenes|
 | SUVI | L1b      | Extreme Ultraviolet solar imagery (long exposures)            |
+| SUVI | L1b      | Create custom solar RGB composites                            |
 
 ## Documentation
 - Imagery examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md)

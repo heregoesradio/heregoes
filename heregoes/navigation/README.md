@@ -35,7 +35,7 @@ index = np.s_[y1:y2, x1:x2]
 nav = ABINavigation("OR_ABI-L1b-RadC-M6C07[...].nc", index=index)
 ```
 
-#### Or a geodetic Earth point or bounding box:
+#### Or with geodetic Earth coordinates:
 ```python
 from heregoes.navigation import ABINavigation
 
@@ -52,33 +52,34 @@ nav = ABINavigation("OR_ABI-L1b-RadC-M6C07[...].nc", lat_bounds=lat_bounds, lon_
 
 
 ### Parallax correction
-Navigated geodetic coordinates can be displaced for image features above the GRS80 ellipsoid, such as high terrain or cloud. The parallax displacement vector is described on the sphere by[^4] [^5]:
+Navigated geodetic coordinates can be displaced for image features above the GRS80 ellipsoid, such as high terrain or cloud. `ABINavigation` corrects for this parallax effect when given the ellipsoidal height of the feature in `height_m`. Cloud height is typically estimated from brightness temperatures within the ABI scene[^5], whereas terrain height can be given as individual scalars or a matrix taken from a DEM.
 
-```
-(h * H * tan(θ)) / (H - h)
-```
-
-where,
-
-```
-H = satellite ellipsoidal height
-h = ellipsoidal height of cloud or high terrain
-θ = satellite zenith angle
-```
-
-Subsetted navigation elements are corrected for parallax to the nearest Fixed Grid pixel if `height_m` is provided as an argument to `ABINavigation`. Typically, the height is either estimated for cloud pixels within the scene[^6] or [taken from a DEM for the terrain](https://github.com/heregoesradio/heregoes/blob/main/demo/README.md).
-
-- #### For cloud height with the `index` argument:
-    The `height_m` argument is valid for the indexed Fixed Grid point(s). The calculated latitude / longitude and derived navigation elements are corrected for parallax by adding ellipsoidal height to the `r_c` term of equations 7.1.2.8.2 in [^1].
+- #### For cloud height:
+    ```python
+    ABINavigation(
+        "OR_ABI[...].nc",
+        index=index_or_slice_containing_cloud,
+        height_m=cloud_height_meters,
+    )
+    ```
+    Ellipsoidal height `height_m` is valid for the indexed Fixed Grid point(s); if no `index` argument is provided, then `height_m` is considered for all pixels in the ABI scene.
 
 - #### For terrain height with `lat_bounds` and `lon_bounds`:
-    The `height_m` argument is valid for the bounding geodetic point(s). All navigation elements *except* for latitude / longitude are then shifted toward `lat_bounds` and `lon_bounds` to the nearest Fixed Grid pixel.
+    ```python
+    ABINavigation(
+        "OR_ABI[...].nc",
+        lat_bounds=terrain_latitudes,
+        lon_bounds=terrain_longitudes,
+        height_m=terrain_height_meters,
+    )
+    ```
+    Ellipsoidal height `height_m` is valid for all Earth points provided in `lat_bounds` and `lon_bounds`.
 
+See the [terrain correction demo](../../demo/README.md) and [orthorectification.py](../../demo/orthorectification.py) for more advanced usage of the parallax correction feature.
 
 ### References
 [^1]: https://www.goes-r.gov/users/docs/PUG-GRB-vol4.pdf
 [^2]: https://doi.org/10.5281/zenodo.6078954
 [^3]: https://doi.org/10.1017/CBO9781139029346.005
 [^4]: https://doi.org/10.1109/LGRS.2013.2283573
-[^5]: http://nwafiles.nwas.org/jom/articles/2023/2023-JOM2/2023-JOM2.pdf
-[^6]: https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Baseline/ATBD_GOES-R_Cloud_Height_v3.0_Jul2012.pdf
+[^5]: https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Baseline/ATBD_GOES-R_Cloud_Height_v3.0_Jul2012.pdf
