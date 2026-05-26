@@ -19,7 +19,7 @@
 
 ### High performance GOES-R Earth and Sun imagery from netCDF
 
-- Developed at [Here GOES Radiotelescope (2020)](https://heregoesradio.com/) for realtime GOES-R processing with [CSPP Geo GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html)
+- Developed at [Here GOES Radiotelescope (2020)](https://heregoesradio.com/) for realtime use with [CSPP Geo GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html)
 - ABI features [tested](https://github.com/heregoesradio/heregoes/tree/main/tests) against ground targets and operational data and literature
 - SUVI imagery in production at [UW–Madison SSEC](https://cimss.ssec.wisc.edu/satellite-blog/archives/53279) and tested for QC
 - Accelerated and parallelized with the [Numba](https://numba.pydata.org/) JIT compiler
