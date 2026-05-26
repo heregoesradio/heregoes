@@ -200,7 +200,7 @@ class _NCVar(_NCBase):
             self.__value__ = np.atleast_1d(self.__value__)
 
         else:
-            self._mask = self.__value__.mask
+            self._mask = np.broadcast_to(self.__value__.mask, self.__value__.shape)
 
             fill_value = None
             if self._override_fill_value is not None:

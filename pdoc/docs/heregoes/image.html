@@ -51,6 +51,18 @@
                         <li>
                                 <a class="variable" href="#ABIImage.bv">bv</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ABIImage.resample2abi">resample2abi</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABIImage.resample2cog">resample2cog</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABIImage.resample2latlon">resample2latlon</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABIImage.save">save</a>
+                        </li>
                 </ul>
 
             </li>
@@ -65,6 +77,18 @@
                         </li>
                         <li>
                                 <a class="variable" href="#ABINaturalRGB.quality">quality</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABINaturalRGB.resample2abi">resample2abi</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABINaturalRGB.resample2cog">resample2cog</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABINaturalRGB.resample2latlon">resample2latlon</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ABINaturalRGB.save">save</a>
                         </li>
                 </ul>
 
@@ -87,6 +111,9 @@
                         <li>
                                 <a class="variable" href="#SUVIImage.bv">bv</a>
                         </li>
+                        <li>
+                                <a class="function" href="#SUVIImage.save">save</a>
+                        </li>
                 </ul>
 
             </li>
@@ -101,6 +128,9 @@
                         </li>
                         <li>
                                 <a class="variable" href="#SUVIRGB.quality">quality</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#SUVIRGB.save">save</a>
                         </li>
                 </ul>
 
@@ -132,7 +162,7 @@
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">ABIImage</span><wbr>(<span class="base">heregoes.image._abiimage._BaseABIImage</span>):
+    <span class="name">ABIImage</span><wbr>(<span class="base">heregoes.image._image._Image</span>, <span class="base">heregoes.projection._projection.ABIProjection</span>):
 
         
     </div>
@@ -146,7 +176,7 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
                             <div id="ABIImage.__init__" class="classattr">
                                 <div class="attr function">
             
-        <span class="name">ABIImage</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">abi_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">index</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]],</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lat_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lon_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">height_m</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">	<span class="n">normalize_rf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">black_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span>)</span>
+        <span class="name">ABIImage</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">abi_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">index</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]],</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lat_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lon_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">height_m</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">	<span class="n">normalize_rf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">black_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">div_sun_za</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span>)</span>
 
         
     </div>
@@ -156,25 +186,28 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
 
 <ul>
 <li><p><code>abi_data</code>: Either a <code>str</code> or <code>Path</code> referencing an ABI L1b netCDF file, or one already loaded by <code><a href="load.html">heregoes.load</a></code></p></li>
-<li><p><code><a href="#ABIImage.index">index</a></code> (optional): 2D slice to select a subset of the ABI image, e.g.:</p>
+<li><p><code><a href="#ABIImage.index">index</a></code> (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:</p>
 
 <ul>
 <li><code>np.s_[y1:y2, x1:x2]</code></li>
+<li><code>(slice(y1, y2, None), slice(x1, x2, None))</code></li>
 </ul></li>
-<li><p><code>lat_bounds</code>, <code>lon_bounds</code> (optional): Instead of <code><a href="#ABIImage.index">index</a></code>, use a geographic bounding box to select a slice of the ABI image, e.g.:</p>
+<li><p><code>lat_bounds</code>, <code>lon_bounds</code> (optional, degrees): Instead of <code><a href="#ABIImage.index">index</a></code>, provide geodetic coordinates to select a slice of the Fixed Grid. Can be a bounding box (upper left, lower right) or meshgrid:</p>
 
 <ul>
 <li><code>lat_bounds=[ul_lat, lr_lat]</code>, <code>lon_bounds=[ul_lon, lr_lon]</code></li>
+<li><code>lat_bounds=lat_grid</code>, <code>lon_bounds=lon_grid</code></li>
 </ul></li>
 <li><p><code>height_m</code> (optional): If subsetting the image by <code><a href="#ABIImage.index">index</a></code> or <code>lat_bounds</code> and <code>lon_bounds</code>, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)</p>
 
 <ul>
-<li><code>height_m=1234.0</code></li>
 <li><code>height_m=[ul_m, lr_m]</code></li>
+<li><code>height_m=height_grid</code></li>
 </ul></li>
 <li><p><code>gamma</code> (optional): Gamma correction term; 0.5 is the common square root enhancement. Default <code>1.0</code> or no correction</p></li>
 <li><p><code>normalize_rf</code> (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default <code>False</code>, but RF is always normalized when <code>gamma</code> is 1.0</p></li>
 <li><p><code>black_space</code> (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default <code>False</code></p></li>
+<li><p><code>div_sun_za</code> (optional): Whether to divide reflectance factor by the cosine of the solar zenith angle (ZA)</p></li>
 </ul>
 </div>
 
@@ -248,18 +281,105 @@ or brightness temperature with a bilinear tone curve</p>
 
 
                             </div>
+                            <div id="ABIImage.resample2abi" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">resample2abi</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">source</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span>,</span><span class="param">	<span class="n">resample_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bilinear&#39;</span>,</span><span class="param">	<span class="n">lat_bounds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">90.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">90.0</span><span class="p">]</span>,</span><span class="param">	<span class="n">lon_bounds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">180.0</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">]</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABIImage.resample2abi"></a>
+    
+            <div class="docstring"><p>Resample an <code>NDArray</code> from equirectangular to the geostationary projection of this ABI scene</p>
+
+<h4 id="parameters">Parameters:</h4>
+
+<ul>
+<li><code>source</code>: <code>NDArray</code> to resample</li>
+<li><code>lat_bounds</code>, <code>lon_bounds</code> (optional): Upper left and lower right lat/lon extents of the equirectangular source data; all coordinates must lie within the ABI scene
+<ul>
+<li><code>lat_bounds=[ul_lat, lr_lat]</code>, <code>lon_bounds=[ul_lon, lr_lon]</code></li>
+</ul></li>
+<li><code>resample_algo</code> (optional): <a href="https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r">GDAL interpolation method</a> to use during the warp</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="ABIImage.resample2cog" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">resample2cog</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">filepath</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">=</span> <span class="s1">&#39;bv&#39;</span>,</span><span class="param">	<span class="n">resample_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lanczos&#39;</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span><span class="return-annotation">) -> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABIImage.resample2cog"></a>
+    
+            <div class="docstring"><p>Resample an <code>NDArray</code> from geostationary to equirectangular projection and save to a Cloud-Optimized GeoTIFF (COG)</p>
+
+<h4 id="parameters">Parameters:</h4>
+
+<ul>
+<li><code>source</code>: <code>NDArray</code> to resample</li>
+<li><code>filepath</code>: <code>str</code> or <code>PathLike</code> object to save the TIFF to</li>
+<li><code>resample_algo</code> (optional): <a href="https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r">GDAL interpolation method</a> to use during the warp</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="ABIImage.resample2latlon" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">resample2latlon</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">=</span> <span class="s1">&#39;bv&#39;</span>,</span><span class="param">	<span class="n">resample_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bilinear&#39;</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABIImage.resample2latlon"></a>
+    
+            <div class="docstring"><p>Resample an <code>NDArray</code> from geostationary to equirectangular projection</p>
+
+<h4 id="parameters">Parameters:</h4>
+
+<ul>
+<li><code>source</code>: <code>NDArray</code> to resample</li>
+<li><code>resample_algo</code> (optional): <a href="https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r">GDAL interpolation method</a> to use during the warp</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="ABIImage.save" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">save</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">filepath</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PosixPath</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>, </span><span class="param"><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;.jpeg&#39;</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABIImage.save"></a>
+    
+            <div class="docstring"><p>Save the 8-bit ABI image to <code>filepath</code>.
+If <code>filepath</code> is an existing directory, the image is saved in the directory with a sequential filename plus the image extension <code>ext</code>.</p>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="ABINaturalRGB">
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">ABINaturalRGB</span><wbr>(<span class="base">heregoes.image._abiimage._BaseABIImage</span>):
+    <span class="name">ABINaturalRGB</span><wbr>(<span class="base">heregoes.image._image._Image</span>, <span class="base">heregoes.projection._projection.ABIProjection</span>):
 
         
     </div>
     <a class="headerlink" href="#ABINaturalRGB"></a>
     
-            <div class="docstring"><p>Creates the "natural" color RGB for ABI following <a href="https://doi.org/10.1029/2018EA000379">Bah et. al (2018)</a>
+            <div class="docstring"><p>Creates the "natural" color RGB for ABI following <a href="https://doi.org/10.1029/2018EA000379">Bah et. al (2018)</a>.
 Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.ABIProjection</a></code> and <code><a href="navigation.html#ABINavigation">heregoes.navigation.ABINavigation</a></code></p>
 </div>
 
@@ -267,7 +387,7 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
                             <div id="ABINaturalRGB.__init__" class="classattr">
                                 <div class="attr function">
             
-        <span class="name">ABINaturalRGB</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">red_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">green_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">blue_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">index</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]],</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lat_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lon_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">height_m</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">	<span class="n">normalize_rf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">black_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">r_coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.45</span>,</span><span class="param">	<span class="n">g_coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>,</span><span class="param">	<span class="n">b_coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.45</span>,</span><span class="param">	<span class="n">upscale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">upscale_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cubic&#39;</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span>)</span>
+        <span class="name">ABINaturalRGB</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">red_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">green_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">blue_data</span><span class="p">:</span> <span class="n"><a href="goesr/data.html#ABIL1bData">heregoes.goesr.data.ABIL1bData</a></span> <span class="o">|</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">index</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]],</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lat_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">lon_bounds</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">height_m</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">	<span class="n">normalize_rf</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">black_space</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">div_sun_za</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">r_coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.45</span>,</span><span class="param">	<span class="n">g_coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>,</span><span class="param">	<span class="n">b_coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.45</span>,</span><span class="param">	<span class="n">upscale</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">upscale_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cubic&#39;</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span>)</span>
 
         
     </div>
@@ -284,20 +404,23 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
 <li>Either a <code>str</code> or <code>Path</code> referencing an ABI L1b netCDF file, or one already loaded by <code><a href="load.html">heregoes.load</a></code></li>
 </ul></li>
 </ul></li>
-<li><p><code><a href="#ABINaturalRGB.index">index</a></code> (optional): 2D slice to select a subset of the ABI image, e.g.:</p>
+<li><p><code><a href="#ABINaturalRGB.index">index</a></code> (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:</p>
 
 <ul>
 <li><code>np.s_[y1:y2, x1:x2]</code></li>
+<li><code>(slice(y1, y2, None), slice(x1, x2, None))</code></li>
 </ul></li>
-<li><p><code>lat_bounds</code>, <code>lon_bounds</code> (optional): Instead of <code><a href="#ABINaturalRGB.index">index</a></code>, use a geographic bounding box to select a slice of the ABI image, e.g.:</p>
+<li><p><code>lat_bounds</code>, <code>lon_bounds</code> (optional, degrees): Instead of <code><a href="#ABINaturalRGB.index">index</a></code>, provide geodetic coordinates to select a slice of the Fixed Grid. Can be a bounding box (upper left, lower right) or meshgrid:</p>
 
 <ul>
 <li><code>lat_bounds=[ul_lat, lr_lat]</code>, <code>lon_bounds=[ul_lon, lr_lon]</code></li>
+<li><code>lat_bounds=lat_grid</code>, <code>lon_bounds=lon_grid</code></li>
 </ul></li>
 <li><p><code>height_m</code> (optional): If subsetting the image by <code><a href="#ABINaturalRGB.index">index</a></code> or <code>lat_bounds</code> and <code>lon_bounds</code>, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)</p>
 
 <ul>
 <li><code>height_m=[ul_m, lr_m]</code></li>
+<li><code>height_m=height_grid</code></li>
 </ul></li>
 <li><p><code>gamma</code> (optional): Gamma correction term; 0.5 is the common square root enhancement. Default <code>1.0</code> or no correction</p></li>
 <li><p><code>normalize_rf</code> (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default <code>False</code>, but RF is always normalized when <code>gamma</code> is 1.0</p></li>
@@ -305,6 +428,7 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
 <li><p><code>r_coeff</code>, <code>g_coeff</code>, <code>b_coeff</code> (optional): Coefficients for the fractional combination "green" band method described in Bah et. al (2018)</p></li>
 <li><p><code>upscale</code> (optional): Whether to scale up green and blue images (1 km) to match the red image (500 m) (<code>True</code>) or vice versa (<code>False</code>, Default)</p></li>
 <li><p><code>upscale_algo</code> (optional): The OpenCV interpolation algorithm used for upscaling green and blue images, one of "area", "cubic", "lanczos", "linear", "nearest". Default "cubic"</p></li>
+<li><p><code>div_sun_za</code> (optional): Whether to divide reflectance factor (RF) by the cosine of the solar zenith angle</p></li>
 </ul>
 </div>
 
@@ -318,7 +442,7 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
     </div>
     <a class="headerlink" href="#ABINaturalRGB.bv"></a>
     
-            <div class="docstring"><p>Color pixel brightness values 0-255 with dimensions in BGR order</p>
+            <div class="docstring"><p>Color pixel brightness values 0-255 in BGR order</p>
 </div>
 
 
@@ -336,6 +460,93 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
 
 
                             </div>
+                            <div id="ABINaturalRGB.resample2abi" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">resample2abi</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">source</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span>,</span><span class="param">	<span class="n">resample_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bilinear&#39;</span>,</span><span class="param">	<span class="n">lat_bounds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mf">90.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">90.0</span><span class="p">]</span>,</span><span class="param">	<span class="n">lon_bounds</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">180.0</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">]</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABINaturalRGB.resample2abi"></a>
+    
+            <div class="docstring"><p>Resample an <code>NDArray</code> from equirectangular to the geostationary projection of this ABI scene</p>
+
+<h4 id="parameters">Parameters:</h4>
+
+<ul>
+<li><code>source</code>: <code>NDArray</code> to resample</li>
+<li><code>lat_bounds</code>, <code>lon_bounds</code> (optional): Upper left and lower right lat/lon extents of the equirectangular source data; all coordinates must lie within the ABI scene
+<ul>
+<li><code>lat_bounds=[ul_lat, lr_lat]</code>, <code>lon_bounds=[ul_lon, lr_lon]</code></li>
+</ul></li>
+<li><code>resample_algo</code> (optional): <a href="https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r">GDAL interpolation method</a> to use during the warp</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="ABINaturalRGB.resample2cog" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">resample2cog</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">filepath</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">=</span> <span class="s1">&#39;bv&#39;</span>,</span><span class="param">	<span class="n">resample_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lanczos&#39;</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span><span class="return-annotation">) -> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABINaturalRGB.resample2cog"></a>
+    
+            <div class="docstring"><p>Resample an <code>NDArray</code> from geostationary to equirectangular projection and save to a Cloud-Optimized GeoTIFF (COG)</p>
+
+<h4 id="parameters">Parameters:</h4>
+
+<ul>
+<li><code>source</code>: <code>NDArray</code> to resample</li>
+<li><code>filepath</code>: <code>str</code> or <code>PathLike</code> object to save the TIFF to</li>
+<li><code>resample_algo</code> (optional): <a href="https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r">GDAL interpolation method</a> to use during the warp</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="ABINaturalRGB.resample2latlon" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">resample2latlon</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span> <span class="o">=</span> <span class="s1">&#39;bv&#39;</span>,</span><span class="param">	<span class="n">resample_algo</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;bilinear&#39;</span>,</span><span class="param">	<span class="o">**</span><span class="n">kwargs</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="o">~</span><span class="n">_ScalarT</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABINaturalRGB.resample2latlon"></a>
+    
+            <div class="docstring"><p>Resample an <code>NDArray</code> from geostationary to equirectangular projection</p>
+
+<h4 id="parameters">Parameters:</h4>
+
+<ul>
+<li><code>source</code>: <code>NDArray</code> to resample</li>
+<li><code>resample_algo</code> (optional): <a href="https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r">GDAL interpolation method</a> to use during the warp</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="ABINaturalRGB.save" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">save</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">filepath</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">PathLike</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">PosixPath</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>, </span><span class="param"><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;.jpeg&#39;</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ABINaturalRGB.save"></a>
+    
+            <div class="docstring"><p>Save the 8-bit ABI image to <code>filepath</code>.
+If <code>filepath</code> is an existing directory, the image is saved in the directory with a sequential filename plus the image extension <code>ext</code>.</p>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="SUVIImage">
                     <div class="attr class">
@@ -347,7 +558,7 @@ Inherits from <code><a href="projection.html#ABIProjection">heregoes.projection.
     </div>
     <a class="headerlink" href="#SUVIImage"></a>
     
-            <div class="docstring"><p>Renders the an 8-bit SUVI image from L1b radiance netCDF</p>
+            <div class="docstring"><p>Renders an 8-bit SUVI image from L1b radiance netCDF</p>
 </div>
 
 
@@ -372,7 +583,7 @@ A second linear normalization occurs after the asinh stretch using <code>output_
 <h4 id="parameters">Parameters:</h4>
 
 <ul>
-<li><p><code>suvi_data</code>: Either a <code>str</code> or <code>Path</code> referencing a 1-second exposure SUVI L1b Solar Imagery netCDF file, or one already loaded by <code><a href="load.html">heregoes.load</a></code></p></li>
+<li><p><code>suvi_data</code>: Either a <code>str</code> or <code>Path</code> referencing a long exposure SUVI L1b Solar Imagery netCDF file, or one already loaded by <code><a href="load.html">heregoes.load</a></code></p></li>
 <li><p><code>shift</code> (optional):</p>
 
 <ul>
@@ -465,6 +676,22 @@ A second linear normalization occurs after the asinh stretch using <code>output_
 
 
                             </div>
+                            <div id="SUVIImage.save" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">save</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">filepath</span><span class="o">=</span><span class="n">PosixPath</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>, </span><span class="param"><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;.png&#39;</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SUVIImage.save"></a>
+    
+            <div class="docstring"><p>Save the 8-bit SUVI radiance image to <code>filepath</code>.
+If <code>filepath</code> is an existing directory, the image is saved in the directory with a sequential filename plus the image extension <code>ext</code>.</p>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="SUVIRGB">
                     <div class="attr class">
@@ -476,7 +703,7 @@ A second linear normalization occurs after the asinh stretch using <code>output_
     </div>
     <a class="headerlink" href="#SUVIRGB"></a>
     
-            <div class="docstring"><p>Creates a custom SUVI RGB from three SUVIImage objects</p>
+            <div class="docstring"><p>Creates a custom SUVI RGB image from three <code><a href="#SUVIImage">SUVIImage</a></code> objects</p>
 </div>
 
 
@@ -509,7 +736,7 @@ A second linear normalization occurs after the asinh stretch using <code>output_
     </div>
     <a class="headerlink" href="#SUVIRGB.bv"></a>
     
-            <div class="docstring"><p>Color pixel brightness values 0-255 with dimensions in BGR order</p>
+            <div class="docstring"><p>Color pixel brightness values 0-255 in BGR order</p>
 </div>
 
 
@@ -523,6 +750,22 @@ A second linear normalization occurs after the asinh stretch using <code>output_
     <a class="headerlink" href="#SUVIRGB.quality"></a>
     
             <div class="docstring"><p>The ratio of masked to total image pixels across red, green, and blue components</p>
+</div>
+
+
+                            </div>
+                            <div id="SUVIRGB.save" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">save</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">filepath</span><span class="o">=</span><span class="n">PosixPath</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>, </span><span class="param"><span class="n">ext</span><span class="o">=</span><span class="s1">&#39;.png&#39;</span></span><span class="return-annotation">):</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#SUVIRGB.save"></a>
+    
+            <div class="docstring"><p>Save the 8-bit SUVI RGB image to <code>filepath</code>.
+If <code>filepath</code> is an existing directory, the image is saved in the directory with a sequential filename plus the image extension <code>ext</code>.</p>
 </div>
 
 

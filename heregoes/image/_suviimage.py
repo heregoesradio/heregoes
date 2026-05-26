@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
@@ -38,7 +39,7 @@ safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
 
 class SUVIImage(_Image):
-    """Renders the an 8-bit SUVI image from L1b radiance netCDF"""
+    """Renders an 8-bit SUVI image from L1b radiance netCDF"""
 
     def __init__(
         self,
@@ -62,7 +63,7 @@ class SUVIImage(_Image):
         If not provided as arguments, `input_range`, `asinh_a`, and `output_range` use the default per-channel coefficients defined in `heregoes.goesr.coefficients.SUVICoeff`.
 
         #### Parameters:
-        - `suvi_data`: Either a `str` or `Path` referencing a 1-second exposure SUVI L1b Solar Imagery netCDF file, or one already loaded by `heregoes.load()`
+        - `suvi_data`: Either a `str` or `Path` referencing a long exposure SUVI L1b Solar Imagery netCDF file, or one already loaded by `heregoes.load()`
 
         - `shift` (optional):
             - Whether to try moving the center of the Sun to the center of the image. Default `True`
@@ -93,9 +94,9 @@ class SUVIImage(_Image):
             self.suvi_data.time_coverage_start.replace(tzinfo=None),
         )
 
-        if self.suvi_data["CMD_EXP"][...] != 1.0:
+        if self.suvi_data["CMD_EXP"][...] < 1.0:
             logger.warning(
-                f"Short SUVI exposure detected in {self.suvi_data.filepath}:\nSUVI exposures shorter than 1 second are not officially supported.",
+                f"Short SUVI exposure detected in {self.suvi_data._nc_file}:\nSUVI exposures shorter than 1 second are not officially supported.",
             )
 
         self.input_range = (
@@ -185,10 +186,17 @@ class SUVIImage(_Image):
     def bv(self, value):
         self._bv = value
 
+    def save(self, filepath=Path("."), ext=".png"):
+        """
+        Save the 8-bit SUVI radiance image to `filepath`.
+        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
+        """
+        return super().save(filepath=filepath, ext=ext, source="bv")
+
 
 class SUVIRGB(_Image):
     """
-    Creates a custom SUVI RGB from three SUVIImage objects
+    Creates a custom SUVI RGB image from three `SUVIImage` objects
     """
 
     def __init__(
@@ -224,7 +232,7 @@ class SUVIRGB(_Image):
             )
         )
         """
-        Color pixel brightness values 0-255 with dimensions in BGR order        
+        Color pixel brightness values 0-255 in BGR order        
         """
 
         self.quality: float = (
@@ -253,3 +261,10 @@ class SUVIRGB(_Image):
                 red_image.suvi_data.time_coverage_start.strftime(safe_time_format),
             )
         )
+
+    def save(self, filepath=Path("."), ext=".png"):
+        """
+        Save the 8-bit SUVI RGB image to `filepath`.
+        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
+        """
+        return super().save(filepath=filepath, ext=ext, source="bv")

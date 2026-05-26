@@ -73,7 +73,7 @@
                     <h1 class="modulename">
 <a href="./../../heregoes.html">heregoes</a><wbr>.<a href="./../goesr.html">goesr</a><wbr>.abi    </h1>
 
-                        <div class="docstring"><p>Functions for working with ABI L1b Radiance and ABI L2 CMI</p>
+                        <div class="docstring"><p>Functions for working with ABI L1b Radiance, mostly taken from the Cloud and Moisture Imagery (CMI) <a href="https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf">ATBD</a></p>
 </div>
 
                 
@@ -187,7 +187,7 @@
     </div>
     <a class="headerlink" href="#rad_wvn2wvl"></a>
     
-            <div class="docstring"><p>Converts spectral radiance "rad" in mW/m^2/sr/cm^-1 to W/m^2/sr/μm following
+            <div class="docstring"><p>Converts spectral radiance "rad" in (mW/m^2 sr cm^-1) to (W/m^2 sr μm) following
 <a href="https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf">https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf</a></p>
 </div>
 
@@ -204,7 +204,7 @@
     </div>
     <a class="headerlink" href="#rad_wvl2wvn"></a>
     
-            <div class="docstring"><p>Converts spectral radiance "rad" in W/m^2/sr/μm to mW/m^2/sr/cm^-1 following
+            <div class="docstring"><p>Converts spectral radiance "rad" in (W/m^2 sr μm) to (mW/m^2 sr cm^-1) following
 <a href="https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf">https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf</a></p>
 </div>
 
@@ -221,7 +221,7 @@
     </div>
     <a class="headerlink" href="#bv2rgb"></a>
     
-            <div class="docstring"><p>From brightness value space, return the fractional combination "green" band RGB following Bah et. al (2018)</p>
+            <div class="docstring"><p>From brightness value space, return the fractional combination "green" band RGB in BGR order following Bah et. al (2018)</p>
 </div>
 
 

@@ -8,10 +8,10 @@ from heregoes.goesr import ABIL1bData, ABIL2Data, GOESRData, SUVIL1bData
 
 def load(nc_data: GOESRInputType) -> GOESRData:
     """
-    Returns a walkable interface to netCDF attributes, dimensions, and variables
+    Returns a walkable interface to GOES-R netCDF attributes, dimensions, and variables
 
     #### Parameters:
-    - `nc_data`: a `str` or `PathLike` object pointing to a GOES-R netCDF file
+    - `nc_data`: a `str` or `PathLike` object pointing to a supported GOES-R netCDF file
     """
     if isinstance(nc_data, GOESRData):
         return nc_data

@@ -19,8 +19,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""NumPy and OpenCV helper functions optimized with Numba where possible"""
-
 import cv2
 import numpy as np
 from numba import prange
@@ -53,7 +51,7 @@ __all__ = [
 @heregoes_njit_noparallel
 def linear_interp(x1, x2, y1, y2, x):  # pragma: no cover
     """
-    Linearly interpolates y at x for x between x1, x2 and y between y1, y2
+    Linearly interpolates `y` at `x` for `x` between `x1`, `x2` and `y` between `y1`, `y2`
     """
     return (y1 * (x2 - x) + y2 * (x - x1)) / (x2 - x1)
 
@@ -83,7 +81,7 @@ def linear_norm(
 
 def minmax(arr):
     """
-    Convenience function for the common case of linear normalization where `old_min` and `old_max` are the nanmin and nanmax of `arr`.
+    Convenience function for `linear_norm` where `old_min` and `old_max` are the nanmin and nanmax of `arr`
     """
     return linear_norm(arr, old_min=np.nanmin(arr), old_max=np.nanmax(arr))
 
@@ -221,7 +219,7 @@ def max_time_delta(time_array):
 
 def centered_slice(center_idx, shape):
     """
-    Returns a slice object centered on `center_idx` with shape `shape`.
+    Returns a slice object centered on `center_idx` with shape `shape`
     """
 
     center_y, center_x = center_idx
@@ -308,7 +306,7 @@ def nearest_2d_search(y_arr, x_arr, target_y, target_x):
     """
     Search in (1D or 2D) coordinate arrays `y_arr`, `x_arr` for `target_y`, `target_x`.
 
-    Returns tuple of the nearest indices or slices matching `target_y`, `target_x` in `y_arr`, `x_arr`.
+    Returns tuple of the nearest indices or slices in `y_arr`, `x_arr` containing `target_y`, `target_x`.
 
     Notes:
     - Two target coordinates in `target_y`, `target_x` will resolve to a continous 2D slice

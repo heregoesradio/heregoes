@@ -34,7 +34,36 @@ cspp_time_format = "%Y-%m-%d %H:%M:%S.%f"
 
 
 class GOESRData(NCInterface):
-    """Custom generic attributes on top of GOES-R netCDF"""
+    """
+    #### Walkable interface for netCDF
+
+    Access netCDF4 variables under `.variables`, and dimensions under `.dimensions`.
+    Masked variables are always filled, and scalar variables are always 1D arrays.
+
+    You should never have to invoke `GOESRData` directly, as the appropriate data object is returned by running `heregoes.load()` on a supported netCDF file.
+
+    ##### Load netCDF file
+    ```python
+    from heregoes import load
+
+    loaded = load("my_goes-r_netcdf.nc")
+    ```
+
+    ##### Access variables with an Ellipsis, index, or slice
+    ```python
+    loaded.variables.MyVariable[...]
+    loaded["MyVariable"][...]
+    ```
+
+    ##### Override the fill value for a variable
+    ```python
+    import numpy as np
+
+    loaded.variables.MyVariable.set_fill_value(np.nan)
+    ```
+
+    *Note: While the shape of the variable array can change when indexed, the `dimensions` attribute of the variable remains the same.*
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -79,9 +108,7 @@ class GOESRData(NCInterface):
         return seconds
 
 
-class ABIData(GOESRData):
-    """Custom ABI attributes on top of ABI netCDF"""
-
+class _ABIData(GOESRData):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -117,8 +144,8 @@ class ABIData(GOESRData):
         self.resolution_km = self.resolution_ifov / resolution_ifov_1km
 
 
-class ABIL1bData(ABIData):
-    """Custom L1b attributes on top of ABI netCDF"""
+class ABIL1bData(_ABIData):
+    """Returned by `heregoes.load()` when called on an ABI L1b netCDF file"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -130,12 +157,14 @@ class ABIL1bData(ABIData):
         )
 
 
-class ABIL2Data(ABIData):
+class ABIL2Data(_ABIData):
+    """Returned by `heregoes.load()` when called on an ABI L2 netCDF file"""
+
     pass
 
 
 class SUVIL1bData(GOESRData):
-    """Custom L1b attributes on top of SUVI netCDF"""
+    """Returned by `heregoes.load()` when called on a SUVI L1b netCDF file"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

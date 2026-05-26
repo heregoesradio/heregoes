@@ -57,125 +57,163 @@ def test_abi_image():
     gamma = 0.5
 
     # test single-channel images
-    for normalize_rf in [True, False]:
-        for abi_nc in resources_l1b.abi_ncs:
-            abi_image = image.ABIImage(
-                abi_nc, gamma=gamma, black_space=True, normalize_rf=normalize_rf
-            )
+    for div_sun_za in [True, False]:
+        for normalize_rf in [True, False]:
+            for abi_nc in resources_l1b.abi_ncs:
+                abi_image = image.ABIImage(
+                    abi_nc,
+                    gamma=gamma,
+                    black_space=True,
+                    normalize_rf=normalize_rf,
+                    div_sun_za=div_sun_za,
+                )
 
-            assert abi_image.rad.dtype == np.float32
-            assert abi_image.cmi.dtype == np.float32
-            assert abi_image.bv.dtype == np.uint8
+                assert abi_image.rad.dtype == np.float32
+                assert abi_image.cmi.dtype == np.float32
+                assert abi_image.bv.dtype == np.uint8
 
-            filename = abi_image.default_filename
-            if normalize_rf:
-                filename += "normalize_rf"
+                filename = abi_image.default_filename
+                if normalize_rf:
+                    filename += "_normalize_rf"
 
-            abi_image.save(filepath=output_dir.joinpath(filename + ".jpg"))
+                if div_sun_za:
+                    filename += "_div_sun_za"
 
-    # test index alignment for subsetted RGB images
-    lat_bounds_500m = (46.0225830078125, 43.89013671875)
-    lon_bounds_500m = [-94.68467712402344, -91.75820922851562]
-    lat_bounds_1km = [46.02677536010742, 43.90188217163086]
-    lon_bounds_1km = (-94.6901626586914, -91.77256774902344)
+                abi_image.save(filepath=output_dir.joinpath(filename + ".jpg"))
 
-    for scene in ["meso", "conus"]:
-        if scene == "meso":
-            slc_500m = np.s_[213:474, 11:307]
-            r_nc = resources_l1b.abi_mc02_nc
-            g_nc = resources_l1b.abi_mc03_nc
-            b_nc = resources_l1b.abi_mc01_nc
+        # test RGB
+        meso_r_nc = resources_l1b.abi_mc02_nc
+        meso_g_nc = resources_l1b.abi_mc03_nc
+        meso_b_nc = resources_l1b.abi_mc01_nc
 
-        elif scene == "conus":
-            slc_500m = np.s_[613:875, 4451:4747]
-            r_nc = resources_l1b.abi_cc02_nc
-            g_nc = resources_l1b.abi_cc03_nc
-            b_nc = resources_l1b.abi_cc01_nc
+        conus_r_nc = resources_l1b.abi_cc02_nc
+        conus_g_nc = resources_l1b.abi_cc03_nc
+        conus_b_nc = resources_l1b.abi_cc01_nc
 
-        slc_1km = scale_idx(slc_500m, 0.5)
-
-        for upscale in [True, False]:
-            for upscale_algo in ["area", "cubic", "lanczos", "linear", "nearest"]:
-                if upscale:
-                    slc = slc_500m
-                    lat_bounds = lat_bounds_500m
-                    lon_bounds = lon_bounds_500m
-                else:
-                    slc = slc_1km
-                    lat_bounds = lat_bounds_1km
-                    lon_bounds = lon_bounds_1km
-
-                # full RGB
+        for div_sun_za in [True, False]:
+            for normalize_rf in [True, False]:
                 abi_rgb_full = image.ABINaturalRGB(
-                    r_nc,
-                    g_nc,
-                    b_nc,
-                    upscale=upscale,
-                    upscale_algo=upscale_algo,
+                    conus_r_nc,
+                    conus_g_nc,
+                    conus_b_nc,
                     gamma=gamma,
                     black_space=True,
+                    normalize_rf=normalize_rf,
+                    div_sun_za=div_sun_za,
                 )
 
-                assert abi_rgb_full.bv.dtype == np.uint8
+                filename = abi_rgb_full.default_filename
+                if normalize_rf:
+                    filename += "_normalize_rf"
 
-                filename = f"{abi_rgb_full.default_filename}_full_rgb"
-                if upscale:
-                    filename += f"_upscale_{upscale_algo}"
+                if div_sun_za:
+                    filename += "_div_sun_za"
 
-                filepath = output_dir.joinpath(filename + ".jpeg")
-                abi_rgb_full.save(filepath=filepath)
+                abi_rgb_full.save(filepath=output_dir.joinpath(filename + ".jpg"))
 
-                # indexed RGB
-                abi_rgb_indexed_bounds = image.ABINaturalRGB(
-                    r_nc,
-                    g_nc,
-                    b_nc,
-                    index=slc,
-                    upscale=upscale,
-                    upscale_algo=upscale_algo,
-                    gamma=gamma,
-                    black_space=True,
-                )
+        # test index alignment for subsetted RGB images
+        lat_bounds_500m = (46.0225830078125, 43.89013671875)
+        lon_bounds_500m = [-94.68467712402344, -91.75820922851562]
+        lat_bounds_1km = [46.02677536010742, 43.90188217163086]
+        lon_bounds_1km = (-94.6901626586914, -91.77256774902344)
 
-                # latlon RGB
-                abi_rgb_latlon_bounds = image.ABINaturalRGB(
-                    r_nc,
-                    g_nc,
-                    b_nc,
-                    lat_bounds=lat_bounds,
-                    lon_bounds=lon_bounds,
-                    upscale=upscale,
-                    upscale_algo=upscale_algo,
-                    gamma=gamma,
-                    black_space=True,
-                )
+        for scene in ["meso", "conus"]:
+            if scene == "meso":
+                slc_500m = np.s_[213:474, 11:307]
+                r_nc = meso_r_nc
+                g_nc = meso_g_nc
+                b_nc = meso_b_nc
 
-                # get the original index of the brightest pixel within the slice
-                brightest_idx_500m = np.unravel_index(
-                    np.nanargmax(np.sum(abi_rgb_full.bv[slc], axis=2)),
-                    abi_rgb_full.bv[slc].shape[0:2],
-                )
+            elif scene == "conus":
+                slc_500m = np.s_[613:875, 4451:4747]
+                r_nc = conus_r_nc
+                g_nc = conus_g_nc
+                b_nc = conus_b_nc
 
-                # if the RGB image is upscaled, then the 500m slice of the below subsetted images will have been aligned +1,+1 pixels to the 1 km FGF
-                brightest_idx_500m_aligned = tuple(
-                    [i + upscale for i in brightest_idx_500m]
-                )
-                assert (
-                    brightest_idx_500m_aligned
-                    == np.unravel_index(
-                        np.nanargmax(np.sum(abi_rgb_indexed_bounds.bv, axis=2)),
-                        abi_rgb_indexed_bounds.bv.shape[0:2],
+            slc_1km = scale_idx(slc_500m, 0.5)
+
+            for upscale in [True, False]:
+                for upscale_algo in ["area", "cubic", "lanczos", "linear", "nearest"]:
+                    if upscale:
+                        slc = slc_500m
+                        lat_bounds = lat_bounds_500m
+                        lon_bounds = lon_bounds_500m
+                    else:
+                        slc = slc_1km
+                        lat_bounds = lat_bounds_1km
+                        lon_bounds = lon_bounds_1km
+
+                    # full RGB
+                    abi_rgb_full = image.ABINaturalRGB(
+                        r_nc,
+                        g_nc,
+                        b_nc,
+                        upscale=upscale,
+                        upscale_algo=upscale_algo,
+                        gamma=gamma,
+                        black_space=True,
                     )
-                    == np.unravel_index(
-                        np.nanargmax(np.sum(abi_rgb_latlon_bounds.bv, axis=2)),
-                        abi_rgb_latlon_bounds.bv.shape[0:2],
-                    )
-                )
 
-                del abi_rgb_full
-                del abi_rgb_indexed_bounds
-                del abi_rgb_latlon_bounds
-                _ = gc.collect()
+                    assert abi_rgb_full.bv.dtype == np.uint8
+
+                    filename = f"{abi_rgb_full.default_filename}_full_rgb"
+                    if upscale:
+                        filename += f"_upscale_{upscale_algo}"
+
+                    filepath = output_dir.joinpath(filename + ".jpeg")
+                    abi_rgb_full.save(filepath=filepath)
+
+                    # indexed RGB
+                    abi_rgb_indexed_bounds = image.ABINaturalRGB(
+                        r_nc,
+                        g_nc,
+                        b_nc,
+                        index=slc,
+                        upscale=upscale,
+                        upscale_algo=upscale_algo,
+                        gamma=gamma,
+                        black_space=True,
+                    )
+
+                    # latlon RGB
+                    abi_rgb_latlon_bounds = image.ABINaturalRGB(
+                        r_nc,
+                        g_nc,
+                        b_nc,
+                        lat_bounds=lat_bounds,
+                        lon_bounds=lon_bounds,
+                        upscale=upscale,
+                        upscale_algo=upscale_algo,
+                        gamma=gamma,
+                        black_space=True,
+                    )
+
+                    # get the original index of the brightest pixel within the slice
+                    brightest_idx_500m = np.unravel_index(
+                        np.nanargmax(np.sum(abi_rgb_full.bv[slc], axis=2)),
+                        abi_rgb_full.bv[slc].shape[0:2],
+                    )
+
+                    # if the RGB image is upscaled, then the 500m slice of the below subsetted images will have been aligned +1,+1 pixels to the 1 km FGF
+                    brightest_idx_500m_aligned = tuple(
+                        [i + upscale for i in brightest_idx_500m]
+                    )
+                    assert (
+                        brightest_idx_500m_aligned
+                        == np.unravel_index(
+                            np.nanargmax(np.sum(abi_rgb_indexed_bounds.bv, axis=2)),
+                            abi_rgb_indexed_bounds.bv.shape[0:2],
+                        )
+                        == np.unravel_index(
+                            np.nanargmax(np.sum(abi_rgb_latlon_bounds.bv, axis=2)),
+                            abi_rgb_latlon_bounds.bv.shape[0:2],
+                        )
+                    )
+
+                    del abi_rgb_full
+                    del abi_rgb_indexed_bounds
+                    del abi_rgb_latlon_bounds
+                    _ = gc.collect()
 
 
 def test_suvi_image():
@@ -221,3 +259,9 @@ def test_suvi_rgb():
     ).all()
 
     rgb.save(filepath=output_dir, ext=".jpeg")
+
+    try:
+        rgb.save("not-a-real-format.xyz")
+
+    except Exception as e:
+        assert isinstance(e, IOError)

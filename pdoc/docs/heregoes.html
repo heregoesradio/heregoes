@@ -56,19 +56,19 @@
 heregoes    </h1>
 
                         <div class="docstring"><p float="left">
-    <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_v1.0.1.jpg">
-        <img src="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_fulldisk_color_2019-09-04T170015Z_cog_thumbnail.jpg" height="250">
+    <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_v1.0.3.jpg">
+        <img src="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_thumbnail.jpg" height="250">
     </a>
     <a href="https://static.heregoesradio.com/suvi/grb_g16_suvi_color_2022-11-23T113653Z.jpg">
         <img src="https://static.heregoesradio.com/suvi/grb_g16_suvi_color_2022-11-23T113653Z_thumbnail.jpg" height="250">
     </a>
 </p>
 
-<h3 id="research-quality-goes-r-earth-and-sun-imagery-from-netcdf">Research quality GOES-R Earth and Sun imagery from netCDF</h3>
+<h3 id="high-performance-goes-r-earth-and-sun-imagery-from-netcdf">High performance GOES-R Earth and Sun imagery from netCDF</h3>
 
 <ul>
-<li>Originally developed for realtime GOES-R processing at <a href="https://heregoesradio.com/">Here GOES Radiotelescope</a> (Dove &amp; Neilson, 2020)</li>
-<li>ABI features <a href="https://github.com/heregoesradio/heregoes/tree/main/tests">tested</a> against ground targets and official data and literature</li>
+<li>Developed at <a href="https://heregoesradio.com/">Here GOES Radiotelescope (2020)</a> for realtime GOES-R processing with <a href="https://cimss.ssec.wisc.edu/csppgeo/grb.html">CSPP Geo GRB</a></li>
+<li>ABI features <a href="https://github.com/heregoesradio/heregoes/tree/main/tests">tested</a> against ground targets and operational data and literature</li>
 <li>SUVI imagery in production at <a href="https://cimss.ssec.wisc.edu/satellite-blog/archives/53279">UW–Madison SSEC</a> and tested for QC</li>
 <li>Accelerated and parallelized with the <a href="https://numba.pydata.org/">Numba</a> JIT compiler</li>
 </ul>
@@ -91,13 +91,23 @@ heregoes    </h1>
 </tr>
 <tr>
   <td style="text-align:left;">ABI</td>
-  <td>L1b, L2+</td>
-  <td>Lat/lon and Fixed Grid subsetting with parallax correction</td>
+  <td>L1b</td>
+  <td>Export as high resolution Cloud-Optimized GeoTIFF (COG)</td>
 </tr>
 <tr>
   <td style="text-align:left;">ABI</td>
   <td>L1b, L2+</td>
-  <td>Pixelwise navigation, ground coverage, and look vectors</td>
+  <td>Subset with slice notation or lat/lon bounding box</td>
+</tr>
+<tr>
+  <td style="text-align:left;">ABI</td>
+  <td>L1b, L2+</td>
+  <td>Parallax correct imagery and geolocation for terrain or cloud</td>
+</tr>
+<tr>
+  <td style="text-align:left;">ABI</td>
+  <td>L1b, L2+</td>
+  <td>Pixelwise ground area and look vectors for Sun and satellite</td>
 </tr>
 <tr>
   <td style="text-align:left;">ABI</td>
@@ -108,6 +118,11 @@ heregoes    </h1>
   <td style="text-align:left;">SUVI</td>
   <td>L1b</td>
   <td>Extreme Ultraviolet solar imagery (long exposures)</td>
+</tr>
+<tr>
+  <td style="text-align:left;">SUVI</td>
+  <td>L1b</td>
+  <td>Create custom solar RGB composites</td>
 </tr>
 </tbody>
 </table>
@@ -130,7 +145,7 @@ heregoes    </h1>
 
 <h3 id="1-install-heregoes-env">1. Install heregoes-env</h3>
 
-<p>Clone this repository and install the appropriate Conda environment for your CPU:</p>
+<p><a href="https://github.com/heregoesradio/heregoes/releases">Download a release</a> and install the appropriate Conda environment for your CPU:</p>
 
 <h5 id="intel-mkl">Intel (MKL)</h5>
 

@@ -118,6 +118,12 @@ def test_projection():
         resample_algo="nearest",
     )
 
+    abi_img = image.ABIImage(resources_l1b.abi_cc05_nc, gamma=0.75)
+    abi_img.resample2cog(
+        filepath=output_dir.joinpath(abi_img.default_filename + ".tiff"),
+        resample_algo="nearest",
+    )
+
 
 # def test_manyprojections():
 #     gamma = 0.75
