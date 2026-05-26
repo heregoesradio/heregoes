@@ -41,7 +41,8 @@ from heregoes.projection._funcs import (
 
 class ABIProjection(ABINavigation):
     """
-    Warp Numpy arrays to and from the projection of an ABI scene
+    Warp Numpy arrays to and from the projection of an ABI scene.
+    Inherits from `heregoes.navigation.ABINavigation`
     """
 
     def __init__(
@@ -155,7 +156,7 @@ class ABIProjection(ABINavigation):
         #### Parameters:
         - `source`: `NDArray` to resample
         - `filepath`: `str` or `PathLike` object to save the TIFF to
-        - `resample_algo` (optional): GDAL interpolation method to use during the warp
+        - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
         """
         resampled = self.resample(
             source,
@@ -179,7 +180,7 @@ class ABIProjection(ABINavigation):
 
         #### Parameters:
         - `source`: `NDArray` to resample
-        - `resample_algo` (optional): GDAL interpolation method to use during the warp
+        - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
         """
         resampled = self.resample(
             source, target="latlon", resample_algo=resample_algo, **kwargs
@@ -189,7 +190,7 @@ class ABIProjection(ABINavigation):
 
     def resample2abi(
         self,
-        source: str | NDArray,
+        source: NDArray,
         resample_algo: str = "nearest",
         lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
             90.0,
@@ -202,13 +203,13 @@ class ABIProjection(ABINavigation):
         **kwargs,
     ) -> NDArray:
         """
-        Resample an `NDArray` from equirectangular to the geostationary projection of the ABI scene
+        Resample an `NDArray` from equirectangular to the geostationary projection of this ABI scene
 
         #### Parameters:
         - `source`: `NDArray` to resample
-        - `lat_bounds`, `lon_bounds` (optional): Upper left and lower right lat/lon extents of the equirectangular source data
+        - `lat_bounds`, `lon_bounds` (optional): Upper left and lower right lat/lon extents of the equirectangular source data; all coordinates must lie within the ABI scene
             - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
-        - `resample_algo` (optional): GDAL interpolation method to use during the warp
+        - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
         """
         resampled = self.resample(
             source,
@@ -289,7 +290,13 @@ class ABIProjection(ABINavigation):
                 translate_outputBounds = [scan_ul_x, scan_ul_y, scan_lr_x, scan_lr_y]
 
                 # warp options
-                warp_outputBounds = None
+                # 2026: Best to provide explicit bounds but it seems GDAL can't georeference correctly if the bounds contain an off-earth pixel
+                warp_outputBounds = [
+                    np.nanmin(self.lon_deg),
+                    np.nanmax(self.lat_deg),
+                    np.nanmax(self.lon_deg),
+                    np.nanmin(self.lat_deg),
+                ]
                 width = 0
                 height = 0
 

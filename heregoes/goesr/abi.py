@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Functions for working with ABI L1b Radiance and ABI L2 CMI"""
+"""Functions for working with ABI L1b Radiance, mostly taken from the Cloud and Moisture Imagery (CMI) [ATBD](https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf)"""
 
 import numpy as np
 
@@ -78,7 +78,7 @@ def bt2bv(bt):  # pragma: no cover
 
 @heregoes_njit
 def rad_wvn2wvl(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
-    """Converts spectral radiance "rad" in mW/m^2/sr/cm^-1 to W/m^2/sr/μm following
+    """Converts spectral radiance "rad" in (mW/m^2 sr cm^-1) to (W/m^2 sr μm) following
     https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf
     """
     return (rad / 1000.0 * eqw_wvn / eqw_wvl).astype(np.float32)
@@ -86,7 +86,7 @@ def rad_wvn2wvl(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
 
 @heregoes_njit
 def rad_wvl2wvn(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
-    """Converts spectral radiance "rad" in W/m^2/sr/μm to mW/m^2/sr/cm^-1 following
+    """Converts spectral radiance "rad" in (W/m^2 sr μm) to (mW/m^2 sr cm^-1) following
     https://cimss.ssec.wisc.edu/goes/calibration/Converting_AHI_RadianceUnits_24Feb2015.pdf
     """
     return (rad * 1000.0 / eqw_wvn * eqw_wvl).astype(np.float32)
@@ -94,7 +94,7 @@ def rad_wvl2wvn(rad, eqw_wvn, eqw_wvl):  # pragma: no cover
 
 @heregoes_njit
 def bv2rgb(r_bv, g_bv, b_bv, r_coeff, g_coeff, b_coeff):  # pragma: no cover
-    """From brightness value space, return the fractional combination "green" band RGB following Bah et. al (2018)"""
+    """From brightness value space, return the fractional combination "green" band RGB in BGR order following Bah et. al (2018)"""
     g_bv = (r_bv * r_coeff) + (g_bv * g_coeff) + (b_bv * b_coeff)
 
     return make_8bit(make_rgb(r_bv, g_bv, b_bv))

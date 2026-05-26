@@ -20,7 +20,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-from typing import Optional
+from os import PathLike
+from pathlib import Path
+from typing import Annotated, Optional
 
 import cv2
 import numpy as np
@@ -35,41 +37,10 @@ from heregoes.util import align_idx, linear_norm, scale_arr, scale_idx
 logger = logging.getLogger()
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
-
-class _BaseABIImage(_Image, ABIProjection):
-    def __init__(
-        self,
-        abi_data: ABIL1bInputType,
-        index: Optional[FixedGridIndexType] = None,
-        lat_bounds: Optional[FixedGridDataType] = None,
-        lon_bounds: Optional[FixedGridDataType] = None,
-        height_m: Optional[FixedGridDataType] = 0.0,
-        **kwargs,
-    ):
-        super().__init__(
-            abi_data,
-            index=index,
-            lat_bounds=lat_bounds,
-            lon_bounds=lon_bounds,
-            height_m=height_m,
-            **kwargs,
-        )
-
-    def resample2cog(self, filepath, **kwargs):
-        return super().resample2cog(
-            source="bv",
-            filepath=filepath,
-            **kwargs,
-        )
-
-    def resample2latlon(self, **kwargs):
-        return super().resample2latlon(
-            source="bv",
-            **kwargs,
-        )
+# 2026-05: wanted a "BaseABIImage" class here but couldn't get pdoc to show the inherited projection + save methods
 
 
-class ABIImage(_BaseABIImage):
+class ABIImage(_Image, ABIProjection):
     """
     Creates 8-bit Cloud and Moisture Imagery (CMI) following the [ATBD](https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf).
     Inherits from `heregoes.projection.ABIProjection` and `heregoes.navigation.ABINavigation`
@@ -85,27 +56,32 @@ class ABIImage(_BaseABIImage):
         gamma: float = 1.0,
         normalize_rf: bool = False,
         black_space: bool = False,
+        div_sun_za: bool = False,
         **kwargs,
     ):
         """
         #### Parameters:
         - `abi_data`: Either a `str` or `Path` referencing an ABI L1b netCDF file, or one already loaded by `heregoes.load()`
 
-        - `index` (optional): 2D slice to select a subset of the ABI image, e.g.:
+        - `index` (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:
             - `np.s_[y1:y2, x1:x2]`
+            - `(slice(y1, y2, None), slice(x1, x2, None))`
 
-        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use a geographic bounding box to select a slice of the ABI image, e.g.:
+        - `lat_bounds`, `lon_bounds` (optional, degrees): Instead of `index`, provide geodetic coordinates to select a slice of the Fixed Grid. Can be a bounding box (upper left, lower right) or meshgrid:
             - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+            - `lat_bounds=lat_grid`, `lon_bounds=lon_grid`
 
         - `height_m` (optional): If subsetting the image by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
-            - `height_m=1234.0`
             - `height_m=[ul_m, lr_m]`
+            - `height_m=height_grid`
 
         - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
 
         - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
 
         - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `False`
+
+        - `div_sun_za` (optional): Whether to divide reflectance factor by the cosine of the solar zenith angle (ZA)
         """
         super().__init__(
             abi_data,
@@ -118,6 +94,7 @@ class ABIImage(_BaseABIImage):
         self.gamma = gamma
         self.normalize_rf = normalize_rf
         self.black_space = black_space
+        self.div_sun_za = div_sun_za
 
         self._rad = None
         self._dqf = None
@@ -197,6 +174,13 @@ class ABIImage(_BaseABIImage):
                     self.abi_data["esun"][...],
                 )
 
+                if self.div_sun_za:
+                    sun_za = self.sun_za
+                    if self.degrees:
+                        sun_za = np.radians(sun_za)
+
+                    self._cmi /= np.cos(sun_za)
+
             elif 7 <= self.abi_data["band_id"][...] <= 16:
                 self._cmi = abi.rad2bt(
                     self.rad,
@@ -251,10 +235,62 @@ class ABIImage(_BaseABIImage):
     def bv(self, value):
         self._bv = value
 
+    def resample2abi(
+        self,
+        source: NDArray,
+        resample_algo: str = "bilinear",
+        lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            90.0,
+            -90.0,
+        ],
+        lon_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            -180.0,
+            180.0,
+        ],
+        **kwargs,
+    ) -> NDArray:
+        return super().resample2abi(
+            source=source,
+            resample_algo=resample_algo,
+            lat_bounds=lat_bounds,
+            lon_bounds=lon_bounds,
+            **kwargs,
+        )
 
-class ABINaturalRGB(_BaseABIImage):
+    def resample2cog(
+        self,
+        filepath: PathLike | str,
+        source: str | NDArray = "bv",
+        resample_algo: str = "lanczos",
+        **kwargs,
+    ) -> PathLike:
+        return super().resample2cog(
+            source=source,
+            filepath=filepath,
+            resample_algo=resample_algo,
+            **kwargs,
+        )
+
+    def resample2latlon(
+        self, source: str | NDArray = "bv", resample_algo: str = "bilinear", **kwargs
+    ) -> NDArray:
+        return super().resample2latlon(
+            source=source,
+            resample_algo=resample_algo,
+            **kwargs,
+        )
+
+    def save(self, filepath: PathLike | str = Path("."), ext=".jpeg"):
+        """
+        Save the 8-bit ABI image to `filepath`.
+        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
+        """
+        return super().save(filepath=filepath, ext=ext, source="bv")
+
+
+class ABINaturalRGB(_Image, ABIProjection):
     """
-    Creates the "natural" color RGB for ABI following [Bah et. al (2018)](https://doi.org/10.1029/2018EA000379)
+    Creates the "natural" color RGB for ABI following [Bah et. al (2018)](https://doi.org/10.1029/2018EA000379).
     Inherits from `heregoes.projection.ABIProjection` and `heregoes.navigation.ABINavigation`
     """
 
@@ -270,6 +306,7 @@ class ABINaturalRGB(_BaseABIImage):
         gamma: float = 1.0,
         normalize_rf: bool = False,
         black_space: bool = False,
+        div_sun_za: bool = False,
         r_coeff: float = 0.45,
         g_coeff: float = 0.1,
         b_coeff: float = 0.45,
@@ -283,14 +320,17 @@ class ABINaturalRGB(_BaseABIImage):
             - For each of the red (0.64 μm), green (0.86 μm), and blue (0.47 μm) radiance components:
                 - Either a `str` or `Path` referencing an ABI L1b netCDF file, or one already loaded by `heregoes.load()`
 
-        - `index` (optional): 2D slice to select a subset of the ABI image, e.g.:
+        - `index` (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:
             - `np.s_[y1:y2, x1:x2]`
+            - `(slice(y1, y2, None), slice(x1, x2, None))`
 
-        - `lat_bounds`, `lon_bounds` (optional): Instead of `index`, use a geographic bounding box to select a slice of the ABI image, e.g.:
+        - `lat_bounds`, `lon_bounds` (optional, degrees): Instead of `index`, provide geodetic coordinates to select a slice of the Fixed Grid. Can be a bounding box (upper left, lower right) or meshgrid:
             - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+            - `lat_bounds=lat_grid`, `lon_bounds=lon_grid`
 
         - `height_m` (optional): If subsetting the image by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
             - `height_m=[ul_m, lr_m]`
+            - `height_m=height_grid`
 
         - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
 
@@ -303,6 +343,8 @@ class ABINaturalRGB(_BaseABIImage):
         - `upscale` (optional): Whether to scale up green and blue images (1 km) to match the red image (500 m) (`True`) or vice versa (`False`, Default)
 
         - `upscale_algo` (optional): The OpenCV interpolation algorithm used for upscaling green and blue images, one of "area", "cubic", "lanczos", "linear", "nearest". Default "cubic"
+
+        - `div_sun_za` (optional): Whether to divide reflectance factor (RF) by the cosine of the solar zenith angle
         """
         if upscale:
             nav_data = red_data
@@ -352,7 +394,7 @@ class ABINaturalRGB(_BaseABIImage):
                     )
                 self.index = aligned_idx
 
-        # make intermediate images
+        ############### red #################
         red_image = ABIImage(
             red_data,
             index=scale_idx(self.index, 1 / scaler_500m),
@@ -360,12 +402,29 @@ class ABINaturalRGB(_BaseABIImage):
             normalize_rf=normalize_rf,
             black_space=black_space,
         )
-        red_image.bv = scale_arr(
-            red_image.bv,
+        if div_sun_za:
+            sun_za = scale_arr(
+                red_image.sun_za,
+                k=scaler_500m,
+                interpolation=cv2.INTER_AREA,
+            )
+            if self.degrees:
+                sun_za = np.radians(sun_za)
+        red_image.mask = scale_arr(
+            red_image.mask,
             k=scaler_500m,
             interpolation=cv2.INTER_AREA,
         )
+        red_image.cmi = scale_arr(
+            red_image.cmi,
+            k=scaler_500m,
+            interpolation=cv2.INTER_AREA,
+        )
+        if div_sun_za:
+            red_image.cmi /= np.cos(sun_za)
+        #####################################
 
+        ############## green ################
         green_image = ABIImage(
             green_data,
             index=scale_idx(self.index, 1 / scaler_1km),
@@ -373,12 +432,21 @@ class ABINaturalRGB(_BaseABIImage):
             normalize_rf=normalize_rf,
             black_space=black_space,
         )
-        green_image.bv = scale_arr(
-            green_image.bv,
+        green_image.mask = scale_arr(
+            green_image.mask,
             k=scaler_1km,
             interpolation=cv2_interpolation,
         )
+        green_image.cmi = scale_arr(
+            green_image.cmi,
+            k=scaler_1km,
+            interpolation=cv2_interpolation,
+        )
+        if div_sun_za:
+            green_image.cmi /= np.cos(sun_za)
+        #####################################
 
+        ############## blue #################
         blue_image = ABIImage(
             blue_data,
             index=scale_idx(self.index, 1 / scaler_1km),
@@ -386,11 +454,19 @@ class ABINaturalRGB(_BaseABIImage):
             normalize_rf=normalize_rf,
             black_space=black_space,
         )
-        blue_image.bv = scale_arr(
-            blue_image.bv,
+        blue_image.mask = scale_arr(
+            blue_image.mask,
             k=scaler_1km,
             interpolation=cv2_interpolation,
         )
+        blue_image.cmi = scale_arr(
+            blue_image.cmi,
+            k=scaler_1km,
+            interpolation=cv2_interpolation,
+        )
+        if div_sun_za:
+            blue_image.cmi /= np.cos(sun_za)
+        #####################################
 
         self.bv: NDArray = abi.bv2rgb(
             r_bv=red_image.bv,
@@ -401,7 +477,7 @@ class ABINaturalRGB(_BaseABIImage):
             b_coeff=b_coeff,
         )
         """
-        Color pixel brightness values 0-255 with dimensions in BGR order
+        Color pixel brightness values 0-255 in BGR order
         """
 
         self.quality: float = (
@@ -427,3 +503,55 @@ class ABINaturalRGB(_BaseABIImage):
                 self.abi_data.time_coverage_start.strftime(safe_time_format),
             )
         )
+
+    def resample2abi(
+        self,
+        source: NDArray,
+        resample_algo: str = "bilinear",
+        lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            90.0,
+            -90.0,
+        ],
+        lon_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            -180.0,
+            180.0,
+        ],
+        **kwargs,
+    ) -> NDArray:
+        return super().resample2abi(
+            source=source,
+            resample_algo=resample_algo,
+            lat_bounds=lat_bounds,
+            lon_bounds=lon_bounds,
+            **kwargs,
+        )
+
+    def resample2cog(
+        self,
+        filepath: PathLike | str,
+        source: str | NDArray = "bv",
+        resample_algo: str = "lanczos",
+        **kwargs,
+    ) -> PathLike:
+        return super().resample2cog(
+            source=source,
+            filepath=filepath,
+            resample_algo=resample_algo,
+            **kwargs,
+        )
+
+    def resample2latlon(
+        self, source: str | NDArray = "bv", resample_algo: str = "bilinear", **kwargs
+    ) -> NDArray:
+        return super().resample2latlon(
+            source=source,
+            resample_algo=resample_algo,
+            **kwargs,
+        )
+
+    def save(self, filepath: PathLike | str = Path("."), ext=".jpeg"):
+        """
+        Save the 8-bit ABI image to `filepath`.
+        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
+        """
+        return super().save(filepath=filepath, ext=ext, source="bv")

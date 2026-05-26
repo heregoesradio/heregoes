@@ -1,7 +1,7 @@
 # heregoes
 ## Lightweight Python for GOES-R ABI and SUVI
 <p>
-<a href="https://github.com/heregoesradio/heregoes/blob/main/LICENSE.txt"><img alt="License: GPL-3.0" src="https://img.shields.io/github/license/heregoesradio/heregoes"></a>
+<a href="https://github.com/heregoesradio/heregoes/blob/main/LICENSE.txt"><img alt="License: GPL-3.0" src="https://shields.io/github/license/heregoesradio/heregoes"></a>
 <a href="./coverage/coverage.xml"><img src="./coverage/coverage-badge.svg?dummy=8484744"></a>
 <a href="https://zenodo.org/badge/latestdoi/469245509"><img src="https://zenodo.org/badge/469245509.svg"></a>
 <p>
@@ -9,8 +9,8 @@
 ------------------------------------------
 
 <p float="left">
-    <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_v1.0.1.jpg">
-        <img src="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_fulldisk_color_2019-09-04T170015Z_cog_thumbnail.jpg" height="250">
+    <a href="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_v1.0.3.jpg">
+        <img src="https://static.heregoesradio.com/abi/fulldisk/2019-09-04/g16_abi_fulldisk_color_2019-09-04T170015Z_cog_thumbnail.jpg" height="250">
     </a>
     <a href="https://static.heregoesradio.com/suvi/grb_g16_suvi_color_2022-11-23T113653Z.jpg">
         <img src="https://static.heregoesradio.com/suvi/grb_g16_suvi_color_2022-11-23T113653Z_thumbnail.jpg" height="250">
@@ -30,7 +30,7 @@
 | ABI  | L1b      | Render Cloud and Moisture Imagery and "Natural" color RGB     |
 | ABI  | L1b      | Export as high resolution Cloud-Optimized GeoTIFF (COG)       |
 | ABI  | L1b, L2+ | Subset with slice notation or lat/lon bounding box            |
-| ABI  | L1b, L2+ | Terrain correction for imagery and geolocation                |
+| ABI  | L1b, L2+ | Parallax correct imagery and geolocation for terrain or cloud |
 | ABI  | L1b, L2+ | Pixelwise ground area and look vectors for Sun and satellite  |
 | ABI  | L1b, L2+ | Resample Numpy arrays to and from the projection of ABI scenes|
 | SUVI | L1b      | Extreme Ultraviolet solar imagery (long exposures)            |
@@ -46,7 +46,7 @@
 
 ## Quickstart
 ### 1. Install heregoes-env
-Clone this repository and install the appropriate Conda environment for your CPU:
+[Download a release](https://github.com/heregoesradio/heregoes/releases) and install the appropriate Conda environment for your CPU:
 
 ##### Intel (MKL)
 ```

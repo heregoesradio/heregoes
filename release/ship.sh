@@ -8,6 +8,7 @@ cd "${INIT_DIR}/../"
 #format
 black . --target-version=py314
 isort --profile black .
+find . -type f -name '*.md' -o -name '*.py' -exec dos2unix {} \;
 
 #clear numba cache,
 set +e

@@ -132,7 +132,7 @@ class SUVICoeff:
     def __init__(self, wavelength):
         """
         Stores scaling coefficients used for SUVI images at [Here GOES Radiotelescope](heregoesradio.com).
-        The coefficients were chosen in 2020-2021 to approximate the appearance of SWPC G16 SUVI imagery from 1-second exposures.
+        The coefficients were chosen in 2020-2021 to approximate the appearance of SWPC G16 SUVI imagery from long exposures.
         See the SUVIImage class for how they are implemented.
         """
 

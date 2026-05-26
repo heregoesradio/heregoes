@@ -37,12 +37,6 @@
 
             </li>
             <li>
-                    <a class="class" href="#ABIData">ABIData</a>
-                            <ul class="memberlist">
-                </ul>
-
-            </li>
-            <li>
                     <a class="class" href="#ABIL1bData">ABIL1bData</a>
                             <ul class="memberlist">
                 </ul>
@@ -93,22 +87,40 @@
     </div>
     <a class="headerlink" href="#GOESRData"></a>
     
-            <div class="docstring"><p>Custom generic attributes on top of GOES-R netCDF</p>
+            <div class="docstring"><h4 id="walkable-interface-for-netcdf">Walkable interface for netCDF</h4>
+
+<p>Access netCDF4 variables under <code>.variables</code>, and dimensions under <code>.dimensions</code>.
+Masked variables are always filled, and scalar variables are always 1D arrays.</p>
+
+<p>You should never have to invoke <code><a href="#GOESRData">GOESRData</a></code> directly, as the appropriate data object is returned by running <code><a href="../load.html">heregoes.load</a></code> on a supported netCDF file.</p>
+
+<h5 id="load-netcdf-file">Load netCDF file</h5>
+
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">heregoes</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span>
+
+<span class="n">loaded</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;my_goes-r_netcdf.nc&quot;</span><span class="p">)</span>
+</code></pre>
 </div>
 
+<h5 id="access-variables-with-an-ellipsis-index-or-slice">Access variables with an Ellipsis, index, or slice</h5>
 
-                </section>
-                <section id="ABIData">
-                    <div class="attr class">
-            
-    <span class="def">class</span>
-    <span class="name">ABIData</span><wbr>(<span class="base"><a href="#GOESRData">GOESRData</a></span>):
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="n">loaded</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">MyVariable</span><span class="p">[</span><span class="o">...</span><span class="p">]</span>
+<span class="n">loaded</span><span class="p">[</span><span class="s2">&quot;MyVariable&quot;</span><span class="p">][</span><span class="o">...</span><span class="p">]</span>
+</code></pre>
+</div>
 
-        
-    </div>
-    <a class="headerlink" href="#ABIData"></a>
-    
-            <div class="docstring"><p>Custom ABI attributes on top of ABI netCDF</p>
+<h5 id="override-the-fill-value-for-a-variable">Override the fill value for a variable</h5>
+
+<div class="pdoc-code codehilite">
+<pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">loaded</span><span class="o">.</span><span class="n">variables</span><span class="o">.</span><span class="n">MyVariable</span><span class="o">.</span><span class="n">set_fill_value</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+</code></pre>
+</div>
+
+<p><em>Note: While the shape of the variable array can change when indexed, the <code>dimensions</code> attribute of the variable remains the same.</em></p>
 </div>
 
 
@@ -117,13 +129,13 @@
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">ABIL1bData</span><wbr>(<span class="base"><a href="#ABIData">ABIData</a></span>):
+    <span class="name">ABIL1bData</span><wbr>(<span class="base"><a href="#_ABIData">_ABIData</a></span>):
 
         
     </div>
     <a class="headerlink" href="#ABIL1bData"></a>
     
-            <div class="docstring"><p>Custom L1b attributes on top of ABI netCDF</p>
+            <div class="docstring"><p>Returned by <code><a href="../load.html">heregoes.load</a></code> when called on an ABI L1b netCDF file</p>
 </div>
 
 
@@ -132,13 +144,13 @@
                     <div class="attr class">
             
     <span class="def">class</span>
-    <span class="name">ABIL2Data</span><wbr>(<span class="base"><a href="#ABIData">ABIData</a></span>):
+    <span class="name">ABIL2Data</span><wbr>(<span class="base"><a href="#_ABIData">_ABIData</a></span>):
 
         
     </div>
     <a class="headerlink" href="#ABIL2Data"></a>
     
-            <div class="docstring"><p>Custom ABI attributes on top of ABI netCDF</p>
+            <div class="docstring"><p>Returned by <code><a href="../load.html">heregoes.load</a></code> when called on an ABI L2 netCDF file</p>
 </div>
 
 
@@ -153,7 +165,7 @@
     </div>
     <a class="headerlink" href="#SUVIL1bData"></a>
     
-            <div class="docstring"><p>Custom L1b attributes on top of SUVI netCDF</p>
+            <div class="docstring"><p>Returned by <code><a href="../load.html">heregoes.load</a></code> when called on a SUVI L1b netCDF file</p>
 </div>
 
 

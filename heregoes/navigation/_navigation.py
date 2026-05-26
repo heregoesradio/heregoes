@@ -71,17 +71,19 @@ class ABINavigation:
             - `np.s_[y1:y2, x1:x2]`
             - `(slice(y1, y2, None), slice(x1, x2, None))`
 
-        - `lat_bounds`, `lon_bounds` (optional, degrees): Instead of `index`, use a geographic bounding box to select a slice of the Fixed Grid, e.g.:
+        - `lat_bounds`, `lon_bounds` (optional, degrees): Instead of `index`, provide geodetic coordinates to select a slice of the Fixed Grid. Can be a bounding box (upper left, lower right) or meshgrid:
             - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+            - `lat_bounds=lat_grid`, `lon_bounds=lon_grid`
 
         - `height_m` (optional): If subsetting by `index` or `lat_bounds` and `lon_bounds`, provide the height in meters relative to the GRS80 at the bounding points. Default 0.0 (no parallax correction)
             - `height_m=[ul_m, lr_m]`
+            - `height_m=height_grid`
 
         - `precise_sun` (optional): Whether to calculate solar position using Equation of Time with Pyorbital (`False`, default) or real ephemeris with Astropy (`True`, slower)
 
         - `time` (optional): UTC `datetime` for which the Sun position is valid. The product midpoint time is used if not provided
 
-        - `degrees` (optional): Whether to return calculated Sun/satellite vector angles in radians or degrees. Default `False`
+        - `degrees` (optional): Whether to return calculated Sun/satellite vector angles in radians or degrees (`True`). Default `False`
 
         - `resample_nav` (optional): Determines whether to resample the navigation to fit the ABI image (`True`), or resample the ABI image to fit the navigation (`False`, default)
             - *Only takes effect when `lat_bounds` and `lon_bounds` are provided with `height_m` for parallax correction*
