@@ -71,6 +71,7 @@ Navigated geodetic coordinates can be displaced for image features above the GRS
         lat_bounds=terrain_latitudes,
         lon_bounds=terrain_longitudes,
         height_m=terrain_height_meters,
+        resample_nav=True,
     )
     ```
     Ellipsoidal height `height_m` is valid for all Earth points provided in `lat_bounds` and `lon_bounds`.

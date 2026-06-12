@@ -34,7 +34,7 @@
 | ABI  | L1b, L2+ | Pixelwise ground area and look vectors for Sun and satellite  |
 | ABI  | L1b, L2+ | Resample Numpy arrays to and from the projection of ABI scenes|
 | SUVI | L1b      | Extreme Ultraviolet solar imagery (long exposures)            |
-| SUVI | L1b      | Create custom solar RGB composites                            |
+| SUVI | L1b      | Colorize Sun imagery or create custom RGB composites          |
 
 ## Documentation
 - Imagery examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md)
@@ -79,6 +79,8 @@ abi_img.save("abi.jpg")
 suvi_img = SUVIImage("OR_SUVI-L1b-[...].nc")
 suvi_img.save("suvi.png")
 ```
+
+#### See code examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md), or reference the [library documentation](https://docs.heregoesradio.com).
 
 ## Planned
 - ABI pixelwise timestamps
