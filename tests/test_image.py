@@ -218,12 +218,17 @@ def test_abi_image():
 
 def test_suvi_image():
     for suvi_nc in resources_l1b.suvi_ncs:
-        suvi_image = image.SUVIImage(suvi_nc)
+        for colorize in [True, False]:
+            suvi_image = image.SUVIImage(suvi_nc, colorize=colorize)
 
-        assert suvi_image.rad.dtype == np.float32
-        assert suvi_image.bv.dtype == np.uint8
+            assert suvi_image.rad.dtype == np.float32
+            assert suvi_image.bv.dtype == np.uint8
 
-        suvi_image.save(filepath=output_dir, ext=".jpg")
+            filename = suvi_image.default_filename
+            if colorize:
+                filename += "_colorized"
+
+            suvi_image.save(filepath=output_dir.joinpath(filename + ".jpg"))
 
 
 def test_suvi_rgb():

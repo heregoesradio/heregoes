@@ -47,7 +47,7 @@ class ABIProjection(ABINavigation):
 
     def __init__(
         self,
-        abi_data: ABIInputType,
+        data: ABIInputType,
         index: Optional[FixedGridIndexType] = None,
         lat_bounds: Optional[FixedGridDataType] = None,
         lon_bounds: Optional[FixedGridDataType] = None,
@@ -55,7 +55,7 @@ class ABIProjection(ABINavigation):
         **kwargs,
     ):
         super().__init__(
-            abi_data,
+            data,
             index=index,
             lat_bounds=lat_bounds,
             lon_bounds=lon_bounds,
@@ -67,15 +67,17 @@ class ABIProjection(ABINavigation):
         self._x_image_bounds = None
         self._y_projected_bounds = None
         self._x_projected_bounds = None
+        self._y_navigated_bounds = None
+        self._x_navigated_bounds = None
         self._image_shape_px = None
 
-        h = self.abi_data["goes_imager_projection"].perspective_point_height
-        a = self.abi_data["goes_imager_projection"].semi_major_axis
-        b = self.abi_data["goes_imager_projection"].semi_minor_axis
-        f = 1 / self.abi_data["goes_imager_projection"].inverse_flattening
-        lat_0 = self.abi_data["goes_imager_projection"].latitude_of_projection_origin
-        lon_0 = self.abi_data["goes_imager_projection"].longitude_of_projection_origin
-        sweep = self.abi_data["goes_imager_projection"].sweep_angle_axis
+        h = self.data["goes_imager_projection"].perspective_point_height
+        a = self.data["goes_imager_projection"].semi_major_axis
+        b = self.data["goes_imager_projection"].semi_minor_axis
+        f = 1 / self.data["goes_imager_projection"].inverse_flattening
+        lat_0 = self.data["goes_imager_projection"].latitude_of_projection_origin
+        lon_0 = self.data["goes_imager_projection"].longitude_of_projection_origin
+        sweep = self.data["goes_imager_projection"].sweep_angle_axis
 
         self._latlon_srs = "+proj=latlon +ellps=WGS84 +datum=WGS84 +no_defs"
         self._abi_srs = f"+proj=geos +h={h} +a={a} +b={b} +f={f} +lat_0={lat_0} +lon_0={lon_0} +x_0=0.0 y_0=0.0 +sweep={sweep} +ellps=GRS80 +no_defs"
@@ -84,7 +86,7 @@ class ABIProjection(ABINavigation):
         # set the projection bounds for this image given that it may be subsetted
 
         # the full scanning angle bounds are given by offsetting with half of the pixel IFOV on all sides
-        offset = self.abi_data.resolution_ifov / np.float32(2)
+        offset = self.data.resolution_ifov / np.float32(2)
         self._y_image_bounds = np.array(
             [self.y_rad[0] + offset, self.y_rad[-1] - offset], dtype=np.float64
         )
@@ -93,7 +95,7 @@ class ABIProjection(ABINavigation):
         )
 
         # multiply by the satellite height to get the projected bounds as false northing, easting (meters)
-        h = self.abi_data["goes_imager_projection"].perspective_point_height
+        h = self.data["goes_imager_projection"].perspective_point_height
         self._y_projected_bounds = self._y_image_bounds * h
         self._x_projected_bounds = self._x_image_bounds * h
 
@@ -132,6 +134,28 @@ class ABIProjection(ABINavigation):
         if self._x_projected_bounds is None:
             self._set_bounds()
         return self._x_projected_bounds
+
+    @property
+    def y_navigated_bounds(self) -> NDArray:
+        """
+        Vertical latitude extents of the ABI scene in degrees
+        """
+        if self._y_navigated_bounds is None:
+            self._y_navigated_bounds = np.array(
+                [np.nanmax(self.lat_deg), np.nanmin(self.lat_deg)], dtype=np.float32
+            )
+        return self._y_navigated_bounds
+
+    @property
+    def x_navigated_bounds(self) -> NDArray:
+        """
+        Horizontal longitude extents of the ABI scene in degrees
+        """
+        if self._x_navigated_bounds is None:
+            self._x_navigated_bounds = np.array(
+                [np.nanmin(self.lon_deg), np.nanmax(self.lon_deg)], dtype=np.float32
+            )
+        return self._x_navigated_bounds
 
     @property
     def image_shape_px(self) -> tuple[int, int]:
@@ -239,8 +263,6 @@ class ABIProjection(ABINavigation):
         source_nodata: Optional[float] = None,
         target_nodata: Optional[float] = None,
     ):
-        # https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r
-
         intermediate_format = "GTiff"
         intermediate_gdal_options = ["COMPRESS=NONE"]
 
@@ -290,27 +312,24 @@ class ABIProjection(ABINavigation):
                 translate_outputBounds = [scan_ul_x, scan_ul_y, scan_lr_x, scan_lr_y]
 
                 # warp options
-                # 2026: Best to provide explicit bounds but it seems GDAL can't georeference correctly if the bounds contain an off-earth pixel
+                # 2026: Best to provide explicit bounds for antimeridian wrapping and consistency when corner pixels could be nan
                 warp_outputBounds = [
-                    np.nanmin(self.lon_deg),
-                    np.nanmax(self.lat_deg),
-                    np.nanmax(self.lon_deg),
-                    np.nanmin(self.lat_deg),
+                    self.x_navigated_bounds[0],  # minX
+                    self.y_navigated_bounds[-1],  # minY
+                    self.x_navigated_bounds[-1],  # maxX
+                    self.y_navigated_bounds[0],  # maxY
                 ]
                 width = 0
                 height = 0
 
-                # Set the projection resolution to that of ABI at the equator for consistency
                 # This seems crude, but without it GDAL estimates the output resolution based on the output bounds which change between ABI scenes or subsets thereof
                 c_eq = (
                     2.0
                     * np.pi
-                    * self.abi_data.variables.goes_imager_projection.semi_major_axis
+                    * self.data.variables.goes_imager_projection.semi_major_axis
                 )
                 meters_per_degree = c_eq / 360.0
-                nadir_resolution_meters = (
-                    self.abi_data.resolution_km * 1000.0
-                )  # horizontal
+                nadir_resolution_meters = self.data.resolution_km * 1000.0  # horizontal
                 degrees_per_pixel = nadir_resolution_meters / meters_per_degree
                 xRes = degrees_per_pixel
                 yRes = degrees_per_pixel

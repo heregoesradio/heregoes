@@ -32,6 +32,7 @@ class _Image:
 
     def save(self, filepath=Path("."), ext=".png", source="bv"):
         filepath = Path(filepath)
+        ext = ext if ext.startswith(".") else "." + ext
 
         # if a directory path is provided instead of a file path, append a default filename
         if filepath.is_dir():

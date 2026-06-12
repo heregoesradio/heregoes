@@ -34,7 +34,7 @@
 | ABI  | L1b, L2+ | Pixelwise ground area and look vectors for Sun and satellite  |
 | ABI  | L1b, L2+ | Resample Numpy arrays to and from the projection of ABI scenes|
 | SUVI | L1b      | Extreme Ultraviolet solar imagery (long exposures)            |
-| SUVI | L1b      | Create custom solar RGB composites                            |
+| SUVI | L1b      | Colorize Sun imagery or create custom RGB composites          |
 
 ## Documentation
 - Imagery examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md)
@@ -68,7 +68,7 @@ Optionally set `HEREGOES_ENV_PARALLEL=False` to disable parallel execution,
 or set `HEREGOES_ENV_NUM_CPUS=n` to limit the CPUs used to `n`.
 
 ### 4. netCDF input
-Provide GOES-R ABI or SUVI netCDF files to `heregoes` from [NOAA CLASS](https://www.class.noaa.gov), [AWS S3](https://noaa-goes19.s3.amazonaws.com/index.html), or in real time from [CSPP Geo GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html).
+Provide GOES-R ABI or SUVI netCDF files to `heregoes` from [NOAA CLASS](https://www.class.noaa.gov), [AWS S3](https://noaa-goes19.s3.amazonaws.com/index.html), or in real time from CSPP Geo [GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html) or [AIT](https://cimss.ssec.wisc.edu/csppgeo/ait.html).
 
 ```python
 from heregoes.image import ABIImage, SUVIImage
@@ -79,6 +79,8 @@ abi_img.save("abi.jpg")
 suvi_img = SUVIImage("OR_SUVI-L1b-[...].nc")
 suvi_img.save("suvi.png")
 ```
+
+#### See code examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md), or reference the [library documentation](https://docs.heregoesradio.com).
 
 ## Planned
 - ABI pixelwise timestamps

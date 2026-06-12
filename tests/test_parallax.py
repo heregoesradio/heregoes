@@ -94,7 +94,7 @@ class ParallaxTestCase:
             lon_deg=self.uncorrected_nav_from_index.lon_deg,
             sat_za=self.uncorrected_nav_from_index.sat_za,
             sat_az=self.uncorrected_nav_from_index.sat_az,
-            sat_height=self.uncorrected_nav_from_index.abi_data[
+            sat_height=self.uncorrected_nav_from_index.data[
                 "goes_imager_projection"
             ].perspective_point_height,
             feature_height=self.this_feature_height,
