@@ -68,7 +68,7 @@ Optionally set `HEREGOES_ENV_PARALLEL=False` to disable parallel execution,
 or set `HEREGOES_ENV_NUM_CPUS=n` to limit the CPUs used to `n`.
 
 ### 4. netCDF input
-Provide GOES-R ABI or SUVI netCDF files to `heregoes` from [NOAA CLASS](https://www.class.noaa.gov), [AWS S3](https://noaa-goes19.s3.amazonaws.com/index.html), or in real time from [CSPP Geo GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html).
+Provide GOES-R ABI or SUVI netCDF files to `heregoes` from [NOAA CLASS](https://www.class.noaa.gov), [AWS S3](https://noaa-goes19.s3.amazonaws.com/index.html), or in real time from CSPP Geo [GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html) or [AIT](https://cimss.ssec.wisc.edu/csppgeo/ait.html).
 
 ```python
 from heregoes.image import ABIImage, SUVIImage

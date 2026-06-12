@@ -30,6 +30,7 @@ from numpy.typing import NDArray
 
 from heregoes import load
 from heregoes.core.types import ABIInputType, FixedGridDataType, FixedGridIndexType
+from heregoes.goesr import ABIL1bData, ABIL2Data
 from heregoes.navigation._funcs import (
     el2za,
     fractional_jd,
@@ -53,7 +54,7 @@ class ABINavigation:
 
     def __init__(
         self,
-        abi_data: ABIInputType,
+        data: ABIInputType,
         index: Optional[FixedGridIndexType] = None,
         lat_bounds: Optional[FixedGridDataType] = None,
         lon_bounds: Optional[FixedGridDataType] = None,
@@ -65,7 +66,7 @@ class ABINavigation:
     ):
         """
         #### Parameters:
-        - `abi_data`: Either a `str` or `Path` referencing an ABI L1b/L2+ netCDF file, or one already loaded by `heregoes.load()`
+        - `data`: Either a `str` or `Path` referencing an ABI L1b/L2+ netCDF file, or one already loaded by `heregoes.load()`
 
         - `index` (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:
             - `np.s_[y1:y2, x1:x2]`
@@ -88,7 +89,12 @@ class ABINavigation:
         - `resample_nav` (optional): Determines whether to resample the navigation to fit the ABI image (`True`), or resample the ABI image to fit the navigation (`False`, default)
             - *Only takes effect when `lat_bounds` and `lon_bounds` are provided with `height_m` for parallax correction*
         """
-        self.abi_data = load(abi_data)
+
+        self.data: ABIL1bData | ABIL2Data = load(data)
+        """
+        Interface for netCDF variables, attributes, and dimensions
+        """
+
         self.lat_bounds = lat_bounds
         self.lon_bounds = lon_bounds
         self.height_m = np.atleast_1d(height_m).astype(np.float32)
@@ -112,7 +118,7 @@ class ABINavigation:
         self._sun_az = None
 
         if self.time is None:
-            self.time = self.abi_data.midpoint_time
+            self.time = self.data.midpoint_time
 
         self._index_mode = self.lat_bounds is None or self.lon_bounds is None
         if self._index_mode:
@@ -121,8 +127,8 @@ class ABINavigation:
             else:
                 self._index = index
 
-            self._y_rad = self.abi_data["y"][self._index[0]]
-            self._x_rad = self.abi_data["x"][self._index[1]]
+            self._y_rad = self.data["y"][self._index[0]]
+            self._x_rad = self.data["x"][self._index[1]]
 
             self._setup = self._from_index
 
@@ -166,6 +172,13 @@ class ABINavigation:
                 feature_height=np.broadcast_to(-self.height_m, self._lat_deg.shape),
             )
 
+            self._nav_index = nearest_2d_search(
+                self._y_rad,
+                self._x_rad,
+                corrected_y_rad_mesh,
+                corrected_x_rad_mesh,
+            )
+
             # get corrected lat/lon from the parallax-corrected instrument scanning angles
             self._lat_deg, self._lon_deg = self._navigate(
                 y_rad=corrected_y_rad_mesh, x_rad=corrected_x_rad_mesh
@@ -176,8 +189,8 @@ class ABINavigation:
             self._x_rad = corrected_x_rad_mesh[0, :]
 
     def _from_latlon(self):
-        self._y_rad = self.abi_data["y"][...]
-        self._x_rad = self.abi_data["x"][...]
+        self._y_rad = self.data["y"][...]
+        self._x_rad = self.data["x"][...]
 
         # get the scanning angles that correspond to the inputted lat/lon (not considering parallax)
         uncorrected_y_rad, uncorrected_x_rad = self._inverse_navigate(
@@ -327,11 +340,9 @@ class ABINavigation:
         if self._cross_track_m is None:
             self._cross_track_m = pixel_height(
                 y_rad=self.y_rad,
-                r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
-                sat_height=self.abi_data[
-                    "goes_imager_projection"
-                ].perspective_point_height,
-                ifov=self.abi_data.resolution_ifov,
+                r_eq=self.data["goes_imager_projection"].semi_major_axis,
+                sat_height=self.data["goes_imager_projection"].perspective_point_height,
+                ifov=self.data.resolution_ifov,
             )
 
         return self._cross_track_m
@@ -344,11 +355,9 @@ class ABINavigation:
         if self._along_track_m is None:
             self._along_track_m = pixel_width(
                 x_rad=self.x_rad,
-                r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
-                sat_height=self.abi_data[
-                    "goes_imager_projection"
-                ].perspective_point_height,
-                ifov=self.abi_data.resolution_ifov,
+                r_eq=self.data["goes_imager_projection"].semi_major_axis,
+                sat_height=self.data["goes_imager_projection"].perspective_point_height,
+                ifov=self.data.resolution_ifov,
             )
 
         return self._along_track_m
@@ -410,24 +419,24 @@ class ABINavigation:
         return navigate(
             y_rad=y_rad,
             x_rad=x_rad,
-            lon_origin=self.abi_data[
+            lon_origin=self.data[
                 "goes_imager_projection"
             ].longitude_of_projection_origin,
-            r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
-            r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
-            sat_height=self.abi_data["goes_imager_projection"].perspective_point_height,
+            r_eq=self.data["goes_imager_projection"].semi_major_axis,
+            r_pol=self.data["goes_imager_projection"].semi_minor_axis,
+            sat_height=self.data["goes_imager_projection"].perspective_point_height,
         )
 
     def _inverse_navigate(self, lat_deg, lon_deg, feature_height):
         return inverse_navigate(
             lat_deg=lat_deg,
             lon_deg=lon_deg,
-            lon_origin=self.abi_data[
+            lon_origin=self.data[
                 "goes_imager_projection"
             ].longitude_of_projection_origin,
-            r_eq=self.abi_data["goes_imager_projection"].semi_major_axis,
-            r_pol=self.abi_data["goes_imager_projection"].semi_minor_axis,
-            sat_height=self.abi_data["goes_imager_projection"].perspective_point_height,
+            r_eq=self.data["goes_imager_projection"].semi_major_axis,
+            r_pol=self.data["goes_imager_projection"].semi_minor_axis,
+            sat_height=self.data["goes_imager_projection"].perspective_point_height,
             feature_height=feature_height,
         )
 
@@ -435,13 +444,13 @@ class ABINavigation:
         # calculate satellite look vector
         self._sat_az, self._sat_za = get_observer_look(
             sat_lon=np.broadcast_to(
-                self.abi_data["nominal_satellite_subpoint_lon"][...], self.lat_deg.shape
+                self.data["nominal_satellite_subpoint_lon"][...], self.lat_deg.shape
             ),
             sat_lat=np.broadcast_to(
-                self.abi_data["nominal_satellite_subpoint_lat"][...], self.lat_deg.shape
+                self.data["nominal_satellite_subpoint_lat"][...], self.lat_deg.shape
             ),
             sat_alt=np.broadcast_to(
-                self.abi_data["nominal_satellite_height"][...], self.lat_deg.shape
+                self.data["nominal_satellite_height"][...], self.lat_deg.shape
             ),
             jdays2000=np.broadcast_to(fractional_jd(self.time), self.lat_deg.shape),
             lon=self.lon_deg,

@@ -29,7 +29,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from heregoes.core.types import ABIL1bInputType, FixedGridDataType, FixedGridIndexType
-from heregoes.goesr import abi
+from heregoes.goesr import ABIL1bData, ABIL2Data, abi
 from heregoes.image._image import _Image
 from heregoes.projection import ABIProjection
 from heregoes.util import align_idx, linear_norm, scale_arr, scale_idx
@@ -37,18 +37,106 @@ from heregoes.util import align_idx, linear_norm, scale_arr, scale_idx
 logger = logging.getLogger()
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
-# 2026-05: wanted a "BaseABIImage" class here but couldn't get pdoc to show the inherited projection + save methods
 
-
-class ABIImage(_Image, ABIProjection):
+class BaseABIImage(_Image, ABIProjection):
     """
-    Creates 8-bit Cloud and Moisture Imagery (CMI) following the [ATBD](https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf).
+    Imagery products on the ABI Fixed Grid projection. Subclass and store 8-bit brightness value under the "bv" attribute.
     Inherits from `heregoes.projection.ABIProjection` and `heregoes.navigation.ABINavigation`
+    """
+
+    bv: NDArray
+    """Pixel brightness values 0-255 in BGR order"""
+
+    data: ABIL1bData | ABIL2Data
+    """
+    Interface for netCDF variables, attributes, and dimensions
+    """
+
+    def resample2abi(
+        self,
+        source: NDArray,
+        resample_algo: str = "bilinear",
+        lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            90.0,
+            -90.0,
+        ],
+        lon_bounds: tuple[float, float] | Annotated[list[float], 2] = [
+            -180.0,
+            180.0,
+        ],
+        **kwargs,
+    ) -> NDArray:
+        """
+        Resample an `NDArray` from equirectangular to the geostationary projection of this ABI scene
+
+        #### Parameters:
+        - `source`: `NDArray` to resample. Defaults to 8-bit brightness value ('bv' attribute)
+        - `lat_bounds`, `lon_bounds` (optional): Upper left and lower right lat/lon extents of the equirectangular source data; all coordinates must lie within the ABI scene
+            - `lat_bounds=[ul_lat, lr_lat]`, `lon_bounds=[ul_lon, lr_lon]`
+        - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
+        """
+        return super().resample2abi(
+            source=source,
+            resample_algo=resample_algo,
+            lat_bounds=lat_bounds,
+            lon_bounds=lon_bounds,
+            **kwargs,
+        )
+
+    def resample2cog(
+        self,
+        filepath: PathLike | str,
+        source: str | NDArray = "bv",
+        resample_algo: str = "lanczos",
+        **kwargs,
+    ) -> PathLike:
+        """
+        Resample an `NDArray` from geostationary to equirectangular projection and save to a Cloud-Optimized GeoTIFF (COG)
+
+        #### Parameters:
+        - `filepath`: `str` or `PathLike` object to save the TIFF to
+        - `source` (optional): `NDArray` to resample. Defaults to 8-bit brightness value ('bv' attribute)
+        - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
+        """
+        return super().resample2cog(
+            source=source,
+            filepath=filepath,
+            resample_algo=resample_algo,
+            **kwargs,
+        )
+
+    def resample2latlon(
+        self, source: str | NDArray = "bv", resample_algo: str = "bilinear", **kwargs
+    ) -> NDArray:
+        """
+        Resample an `NDArray` from geostationary to equirectangular projection
+
+        #### Parameters:
+        - `source` (optional): `NDArray` to resample. Defaults to 8-bit brightness value ('bv' attribute)
+        - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
+        """
+        return super().resample2latlon(
+            source=source,
+            resample_algo=resample_algo,
+            **kwargs,
+        )
+
+    def save(self, filepath: PathLike | str = Path("."), ext=".jpeg"):
+        """
+        Save the 8-bit ABI image to `filepath`.
+        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
+        """
+        return super().save(filepath=filepath, ext=ext, source="bv")
+
+
+class ABIImage(BaseABIImage):
+    """
+    Creates 8-bit Cloud and Moisture Imagery (CMI) following the [ATBD](https://www.star.nesdis.noaa.gov/goesr/documents/ATBDs/Enterprise/ATBD_Enterprise_Cloud_and_Moisture_Imagery_Product_v4_2021-01-13.pdf)
     """
 
     def __init__(
         self,
-        abi_data: ABIL1bInputType,
+        data: ABIL1bInputType,
         index: Optional[FixedGridIndexType] = None,
         lat_bounds: Optional[FixedGridDataType] = None,
         lon_bounds: Optional[FixedGridDataType] = None,
@@ -61,7 +149,7 @@ class ABIImage(_Image, ABIProjection):
     ):
         """
         #### Parameters:
-        - `abi_data`: Either a `str` or `Path` referencing an ABI L1b netCDF file, or one already loaded by `heregoes.load()`
+        - `data`: Either a `str` or `Path` referencing an ABI L1b netCDF file, or one already loaded by `heregoes.load()`
 
         - `index` (optional): 2D array slice index to select a subset of the ABI Fixed Grid, e.g.:
             - `np.s_[y1:y2, x1:x2]`
@@ -79,12 +167,12 @@ class ABIImage(_Image, ABIProjection):
 
         - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
 
-        - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting, or white pixels for reflective imagery and black pixels for emissive imagery. Default `False`
+        - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting (`False`), or white pixels for reflective imagery and black pixels for emissive imagery
 
-        - `div_sun_za` (optional): Whether to divide reflectance factor by the cosine of the solar zenith angle (ZA)
+        - `div_sun_za` (optional): Whether to divide reflectance factor by the cosine of the solar zenith angle (ZA). Default `False`
         """
         super().__init__(
-            abi_data,
+            data,
             index=index,
             lat_bounds=lat_bounds,
             lon_bounds=lon_bounds,
@@ -101,33 +189,33 @@ class ABIImage(_Image, ABIProjection):
         self._cmi = None
         self._bv = None
 
-        self._rad = self.abi_data["Rad"][self.index]
-        self.mask: NDArray = self.abi_data["Rad"].mask
+        self._rad = self.data["Rad"][self.index]
+        self.mask: NDArray = self.data["Rad"].mask
 
-        self.quality: float = self.abi_data["Rad"].pct_unmasked
+        self.quality: float = self.data["Rad"].pct_unmasked
         """
         The ratio of masked to total image array elements
         """
 
         rad_range = np.array(
-            self.abi_data["Rad"].valid_range * self.abi_data["Rad"].scale_factor
-            + self.abi_data["Rad"].add_offset,
+            self.data["Rad"].valid_range * self.data["Rad"].scale_factor
+            + self.data["Rad"].add_offset,
             dtype=np.float32,
         )
 
         self._rf_min, self._rf_max = (
             rad_range
             * np.pi
-            * np.square(self.abi_data["earth_sun_distance_anomaly_in_AU"][...])
-        ) / self.abi_data["esun"][...]
+            * np.square(self.data["earth_sun_distance_anomaly_in_AU"][...])
+        ) / self.data["esun"][...]
 
         self.default_filename = "_".join(
             (
-                self.abi_data.platform_ID.lower(),
-                self.abi_data._instrument_type_str.lower(),
-                self.abi_data._scene_id_str.lower(),
-                self.abi_data._band_id_str.lower(),
-                self.abi_data.time_coverage_start.strftime(safe_time_format),
+                self.data.platform_ID.lower(),
+                self.data._instrument_type_str.lower(),
+                self.data._scene_id_str.lower(),
+                self.data._band_id_str.lower(),
+                self.data.time_coverage_start.strftime(safe_time_format),
             )
         )
 
@@ -138,7 +226,7 @@ class ABIImage(_Image, ABIProjection):
         or `mW m-2 sr-1 (cm-1)-1` for emissive bands 7-16
         """
         if self._rad is None:
-            self._rad = self.abi_data["Rad"][self.index]
+            self._rad = self.data["Rad"][self.index]
 
         return self._rad
 
@@ -152,7 +240,7 @@ class ABIImage(_Image, ABIProjection):
         Data Quality Flag array delivered with the product
         """
         if self._dqf is None:
-            self._dqf = self.abi_data["DQF"][self.index]
+            self._dqf = self.data["DQF"][self.index]
 
         return self._dqf
 
@@ -167,11 +255,11 @@ class ABIImage(_Image, ABIProjection):
         or blackbody brightness temperature (BT) in Kelvin for emissive bands 7-16
         """
         if self._cmi is None:
-            if 1 <= self.abi_data["band_id"][...] <= 6:
+            if 1 <= self.data["band_id"][...] <= 6:
                 self._cmi = abi.rad2rf(
                     self.rad,
-                    self.abi_data["earth_sun_distance_anomaly_in_AU"][...],
-                    self.abi_data["esun"][...],
+                    self.data["earth_sun_distance_anomaly_in_AU"][...],
+                    self.data["esun"][...],
                 )
 
                 if self.div_sun_za:
@@ -181,13 +269,13 @@ class ABIImage(_Image, ABIProjection):
 
                     self._cmi /= np.cos(sun_za)
 
-            elif 7 <= self.abi_data["band_id"][...] <= 16:
+            elif 7 <= self.data["band_id"][...] <= 16:
                 self._cmi = abi.rad2bt(
                     self.rad,
-                    self.abi_data["planck_fk1"][...],
-                    self.abi_data["planck_fk2"][...],
-                    self.abi_data["planck_bc1"][...],
-                    self.abi_data["planck_bc2"][...],
+                    self.data["planck_fk1"][...],
+                    self.data["planck_fk2"][...],
+                    self.data["planck_bc1"][...],
+                    self.data["planck_bc2"][...],
                 )
 
         self.rad = None
@@ -205,7 +293,7 @@ class ABIImage(_Image, ABIProjection):
         or brightness temperature with a bilinear tone curve
         """
         if self._bv is None:
-            if 1 <= self.abi_data["band_id"][...] <= 6:
+            if 1 <= self.data["band_id"][...] <= 6:
                 if self.normalize_rf or self.gamma == 1.0:
                     self._bv = abi.rf2bv(
                         linear_norm(
@@ -221,7 +309,7 @@ class ABIImage(_Image, ABIProjection):
                 else:
                     self._bv = abi.rf2bv(self.cmi, gamma=self.gamma)
 
-            elif 7 <= self.abi_data["band_id"][...] <= 16:
+            elif 7 <= self.data["band_id"][...] <= 16:
                 self._bv = abi.bt2bv(self.cmi)
 
             if self.black_space:
@@ -235,63 +323,10 @@ class ABIImage(_Image, ABIProjection):
     def bv(self, value):
         self._bv = value
 
-    def resample2abi(
-        self,
-        source: NDArray,
-        resample_algo: str = "bilinear",
-        lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
-            90.0,
-            -90.0,
-        ],
-        lon_bounds: tuple[float, float] | Annotated[list[float], 2] = [
-            -180.0,
-            180.0,
-        ],
-        **kwargs,
-    ) -> NDArray:
-        return super().resample2abi(
-            source=source,
-            resample_algo=resample_algo,
-            lat_bounds=lat_bounds,
-            lon_bounds=lon_bounds,
-            **kwargs,
-        )
 
-    def resample2cog(
-        self,
-        filepath: PathLike | str,
-        source: str | NDArray = "bv",
-        resample_algo: str = "lanczos",
-        **kwargs,
-    ) -> PathLike:
-        return super().resample2cog(
-            source=source,
-            filepath=filepath,
-            resample_algo=resample_algo,
-            **kwargs,
-        )
-
-    def resample2latlon(
-        self, source: str | NDArray = "bv", resample_algo: str = "bilinear", **kwargs
-    ) -> NDArray:
-        return super().resample2latlon(
-            source=source,
-            resample_algo=resample_algo,
-            **kwargs,
-        )
-
-    def save(self, filepath: PathLike | str = Path("."), ext=".jpeg"):
-        """
-        Save the 8-bit ABI image to `filepath`.
-        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
-        """
-        return super().save(filepath=filepath, ext=ext, source="bv")
-
-
-class ABINaturalRGB(_Image, ABIProjection):
+class ABINaturalRGB(BaseABIImage):
     """
-    Creates the "natural" color RGB for ABI following [Bah et. al (2018)](https://doi.org/10.1029/2018EA000379).
-    Inherits from `heregoes.projection.ABIProjection` and `heregoes.navigation.ABINavigation`
+    Creates the "natural" color RGB for ABI following [Bah et. al (2018)](https://doi.org/10.1029/2018EA000379)
     """
 
     def __init__(
@@ -344,7 +379,7 @@ class ABINaturalRGB(_Image, ABIProjection):
 
         - `upscale_algo` (optional): The OpenCV interpolation algorithm used for upscaling green and blue images, one of "area", "cubic", "lanczos", "linear", "nearest". Default "cubic"
 
-        - `div_sun_za` (optional): Whether to divide reflectance factor (RF) by the cosine of the solar zenith angle
+        - `div_sun_za` (optional): Whether to divide reflectance factor (RF) by the cosine of the solar zenith angle. Default `False`
         """
         if upscale:
             nav_data = red_data
@@ -488,70 +523,18 @@ class ABINaturalRGB(_Image, ABIProjection):
         """
 
         # update some meta to reflect that this is an RGB
-        self.abi_data["band_id"][...] = np.atleast_1d(0)
-        self.abi_data._band_id_str = "Color"
+        self.data["band_id"][...] = np.atleast_1d(0)
+        self.data._band_id_str = "Color"
 
-        self.abi_data.rgb = [str(red_data), str(green_data), str(blue_data)]
-        self.abi_data.dataset_name = "RGB from " + ", ".join(self.abi_data.rgb)
+        self.data.rgb = [str(red_data), str(green_data), str(blue_data)]
+        self.data.dataset_name = "RGB from " + ", ".join(self.data.rgb)
 
         self.default_filename = "_".join(
             (
-                self.abi_data.platform_ID.lower(),
-                self.abi_data._instrument_type_str.lower(),
-                self.abi_data._scene_id_str.lower(),
-                self.abi_data._band_id_str.lower(),
-                self.abi_data.time_coverage_start.strftime(safe_time_format),
+                self.data.platform_ID.lower(),
+                self.data._instrument_type_str.lower(),
+                self.data._scene_id_str.lower(),
+                self.data._band_id_str.lower(),
+                self.data.time_coverage_start.strftime(safe_time_format),
             )
         )
-
-    def resample2abi(
-        self,
-        source: NDArray,
-        resample_algo: str = "bilinear",
-        lat_bounds: tuple[float, float] | Annotated[list[float], 2] = [
-            90.0,
-            -90.0,
-        ],
-        lon_bounds: tuple[float, float] | Annotated[list[float], 2] = [
-            -180.0,
-            180.0,
-        ],
-        **kwargs,
-    ) -> NDArray:
-        return super().resample2abi(
-            source=source,
-            resample_algo=resample_algo,
-            lat_bounds=lat_bounds,
-            lon_bounds=lon_bounds,
-            **kwargs,
-        )
-
-    def resample2cog(
-        self,
-        filepath: PathLike | str,
-        source: str | NDArray = "bv",
-        resample_algo: str = "lanczos",
-        **kwargs,
-    ) -> PathLike:
-        return super().resample2cog(
-            source=source,
-            filepath=filepath,
-            resample_algo=resample_algo,
-            **kwargs,
-        )
-
-    def resample2latlon(
-        self, source: str | NDArray = "bv", resample_algo: str = "bilinear", **kwargs
-    ) -> NDArray:
-        return super().resample2latlon(
-            source=source,
-            resample_algo=resample_algo,
-            **kwargs,
-        )
-
-    def save(self, filepath: PathLike | str = Path("."), ext=".jpeg"):
-        """
-        Save the 8-bit ABI image to `filepath`.
-        If `filepath` is an existing directory, the image is saved in the directory with a sequential filename plus the image extension `ext`.
-        """
-        return super().save(filepath=filepath, ext=ext, source="bv")

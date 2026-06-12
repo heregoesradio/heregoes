@@ -22,6 +22,11 @@
 """Storage for instrument-specific coefficients not delivered within their netCDF products"""
 
 import re
+from pathlib import Path
+
+import numpy as np
+
+SCRIPT_PATH = Path(__file__).parent.resolve()
 
 
 class ABICoeff:
@@ -166,3 +171,6 @@ class SUVICoeff:
         self.input_range = input_range[wavelength]
         self.asinh_a = asinh_a[wavelength]
         self.output_range = output_range[wavelength]
+
+        with np.load(SCRIPT_PATH.joinpath("suvi-aia-colormap.npz")) as colors:
+            self.colormap = colors[str(int(wavelength))]

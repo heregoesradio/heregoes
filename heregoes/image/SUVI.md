@@ -11,7 +11,7 @@ suvi_data = load("OR_SUVI-L1b-[...].nc")
 print(suvi_data.variables.CMD_EXP[...])
 ```
 
-Render the long-exposure (1-second) SUVI radiance image; shorter exposures for flares are not officially supported and will cause a warning:
+Render the long-exposure SUVI radiance image; flare exposures shorter than 1 second are not officially supported and will cause a warning:
 ```python
 from heregoes.image import SUVIImage
 
@@ -21,6 +21,18 @@ img.save("suvi.png")
 
 <a href="https://static.heregoesradio.com/suvi/g16_suvi_171_2024-10-03T122712Z.jpg">
 <img src="https://static.heregoesradio.com/suvi/g16_suvi_171_2024-10-03T122712Z_thumbnail.jpg">
+</a>
+
+Colorize SUVI imagery with the SDO AIA colormap:
+```python
+from heregoes.image import SUVIImage
+
+img = SUVIImage("OR_SUVI-L1b-[...].nc", colorize=True)
+img.save("suvi-colorized.png")
+```
+
+<a href="https://static.heregoesradio.com/suvi/g16_suvi_171_2024-10-03T122712Z_colorized.jpg">
+<img src="https://static.heregoesradio.com/suvi/g16_suvi_171_2024-10-03T122712Z_colorized_thumbnail.jpg">
 </a>
 
 <br>

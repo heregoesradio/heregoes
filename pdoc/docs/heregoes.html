@@ -67,7 +67,7 @@ heregoes    </h1>
 <h3 id="high-performance-goes-r-earth-and-sun-imagery-from-netcdf">High performance GOES-R Earth and Sun imagery from netCDF</h3>
 
 <ul>
-<li>Developed at <a href="https://heregoesradio.com/">Here GOES Radiotelescope (2020)</a> for realtime GOES-R processing with <a href="https://cimss.ssec.wisc.edu/csppgeo/grb.html">CSPP Geo GRB</a></li>
+<li>Developed at <a href="https://heregoesradio.com/">Here GOES Radiotelescope (2020)</a> for realtime use with <a href="https://cimss.ssec.wisc.edu/csppgeo/grb.html">CSPP Geo GRB</a></li>
 <li>ABI features <a href="https://github.com/heregoesradio/heregoes/tree/main/tests">tested</a> against ground targets and operational data and literature</li>
 <li>SUVI imagery in production at <a href="https://cimss.ssec.wisc.edu/satellite-blog/archives/53279">UW–Madison SSEC</a> and tested for QC</li>
 <li>Accelerated and parallelized with the <a href="https://numba.pydata.org/">Numba</a> JIT compiler</li>
@@ -169,7 +169,7 @@ or set <code>HEREGOES_ENV_NUM_CPUS=n</code> to limit the CPUs used to <code>n</c
 
 <h3 id="4-netcdf-input">4. netCDF input</h3>
 
-<p>Provide GOES-R ABI or SUVI netCDF files to <code><a href="">heregoes</a></code> from <a href="https://www.class.noaa.gov">NOAA CLASS</a>, <a href="https://noaa-goes19.s3.amazonaws.com/index.html">AWS S3</a>, or in real time from <a href="https://cimss.ssec.wisc.edu/csppgeo/grb.html">CSPP Geo GRB</a>.</p>
+<p>Provide GOES-R ABI or SUVI netCDF files to <code><a href="">heregoes</a></code> from <a href="https://www.class.noaa.gov">NOAA CLASS</a>, <a href="https://noaa-goes19.s3.amazonaws.com/index.html">AWS S3</a>, or in real time from CSPP Geo <a href="https://cimss.ssec.wisc.edu/csppgeo/grb.html">GRB</a> or <a href="https://cimss.ssec.wisc.edu/csppgeo/ait.html">AIT</a>.</p>
 
 <div class="pdoc-code codehilite">
 <pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn"><a href="heregoes/image.html">heregoes.image</a></span><span class="w"> </span><span class="kn">import</span> <span class="n">ABIImage</span><span class="p">,</span> <span class="n">SUVIImage</span>
