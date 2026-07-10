@@ -5,6 +5,7 @@ channels:
   - nodefaults
 
 dependencies:
+  - astroplan
   - astropy
   - black
   - gdal
