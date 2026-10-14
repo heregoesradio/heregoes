@@ -43,13 +43,16 @@ from heregoes.image import ABINaturalRGB
 lat_bounds = [upper_left_lat, lower_right_lat]
 lon_bounds = [upper_left_lon, lower_right_lon]
 
-#optionally set gamma to 3/4 and scale up green and blue to the higher resolution red channel
+# optionally set gamma to 3/4,
+# scale up green and blue to the higher resolution red channel, and
+# divide reflectance factor by the cosine of the solar zenith angle
 img = ABINaturalRGB(
     "OR_ABI-L1b-RadC-M6C02[...].nc",
     "OR_ABI-L1b-RadC-M6C03[...].nc",
     "OR_ABI-L1b-RadC-M6C01[...].nc",
     gamma=0.75,
     upscale=True,
+    div_sun_za=True,
     lat_bounds=lat_bounds,
     lon_bounds=lon_bounds,
 )

@@ -23,9 +23,9 @@
 
             <h2>Contents</h2>
             <ul>
-  <li><a href="#features">Features</a></li>
   <li><a href="#documentation">Documentation</a></li>
   <li><a href="#demos">Demos</a></li>
+  <li><a href="#features">Features</a></li>
   <li><a href="#quickstart">Quickstart</a></li>
   <li><a href="#planned">Planned</a></li>
   <li><a href="#future">Future</a></li>
@@ -64,68 +64,14 @@ heregoes    </h1>
     </a>
 </p>
 
-<h3 id="high-performance-goes-r-earth-and-sun-imagery-from-netcdf">High performance GOES-R Earth and Sun imagery from netCDF</h3>
+<h3 id="render-and-analyze-goes-imagery-from-netcdf">Render and analyze GOES imagery from netCDF</h3>
 
 <ul>
 <li>Developed at <a href="https://heregoesradio.com/">Here GOES Radiotelescope (2020)</a> for realtime use with <a href="https://cimss.ssec.wisc.edu/csppgeo/grb.html">CSPP Geo GRB</a></li>
+<li>Accelerated and parallelized with the <a href="https://numba.pydata.org/">Numba</a> JIT compiler for <a href="https://numpy.org/">NumPy</a></li>
 <li>ABI features <a href="https://github.com/heregoesradio/heregoes/tree/main/tests">tested</a> against ground targets and operational data and literature</li>
 <li>SUVI imagery in production at <a href="https://cimss.ssec.wisc.edu/satellite-blog/archives/53279">UW–Madison SSEC</a> and tested for QC</li>
-<li>Accelerated and parallelized with the <a href="https://numba.pydata.org/">Numba</a> JIT compiler</li>
 </ul>
-
-<h2 id="features">Features</h2>
-
-<table>
-<thead>
-<tr>
-  <th style="text-align:left;">Instrument</th>
-  <th>Products</th>
-  <th>Features</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-  <td style="text-align:left;">ABI</td>
-  <td>L1b</td>
-  <td>Render Cloud and Moisture Imagery and "Natural" color RGB</td>
-</tr>
-<tr>
-  <td style="text-align:left;">ABI</td>
-  <td>L1b</td>
-  <td>Export as high resolution Cloud-Optimized GeoTIFF (COG)</td>
-</tr>
-<tr>
-  <td style="text-align:left;">ABI</td>
-  <td>L1b, L2+</td>
-  <td>Subset with slice notation or lat/lon bounding box</td>
-</tr>
-<tr>
-  <td style="text-align:left;">ABI</td>
-  <td>L1b, L2+</td>
-  <td>Parallax correct imagery and geolocation for terrain or cloud</td>
-</tr>
-<tr>
-  <td style="text-align:left;">ABI</td>
-  <td>L1b, L2+</td>
-  <td>Pixelwise ground area and look vectors for Sun and satellite</td>
-</tr>
-<tr>
-  <td style="text-align:left;">ABI</td>
-  <td>L1b, L2+</td>
-  <td>Resample Numpy arrays to and from the projection of ABI scenes</td>
-</tr>
-<tr>
-  <td style="text-align:left;">SUVI</td>
-  <td>L1b</td>
-  <td>Extreme Ultraviolet solar imagery (long exposures)</td>
-</tr>
-<tr>
-  <td style="text-align:left;">SUVI</td>
-  <td>L1b</td>
-  <td>Create custom solar RGB composites</td>
-</tr>
-</tbody>
-</table>
 
 <h2 id="documentation">Documentation</h2>
 
@@ -140,6 +86,69 @@ heregoes    </h1>
 <ul>
 <li><a href="https://github.com/heregoesradio/heregoes/blob/main/demo/README.md">Terrain correction of the ABI Fixed Grid using heregoes</a></li>
 </ul>
+
+<h2 id="features">Features</h2>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">🌎 <strong><em>ABI Earth imagery</em></strong> 🛰️</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">∘ Render Cloud and Moisture Imagery and "Natural" color RGB</td>
+</tr>
+<tr>
+  <td style="text-align:left;">∘ Apply band algebra for derived products or algorithms</td>
+</tr>
+<tr>
+  <td style="text-align:left;">∘ Orthorectify and export as Cloud-Optimized GeoTIFF (COG)</td>
+</tr>
+</tbody>
+</table>
+
+<p><br></p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">🌐 <strong><em>Navigation for ABI L1b and L2+ products</em></strong> 🧭</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">∘ Subset with slice notation or lat/lon bounding box</td>
+</tr>
+<tr>
+  <td style="text-align:left;">∘ Pixelwise ground area and local look angles to Sun and satellite</td>
+</tr>
+<tr>
+  <td style="text-align:left;">∘ Resample Numpy arrays to and from the projection of ABI scenes</td>
+</tr>
+<tr>
+  <td style="text-align:left;">∘ Correct geolocation for parallax displacement by terrain or cloud</td>
+</tr>
+</tbody>
+</table>
+
+<p><br></p>
+
+<table>
+<thead>
+<tr>
+  <th style="text-align:left;">☀️ <strong><em>SUVI Sun imagery</em></strong> 🔭</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td style="text-align:left;">∘ Extreme Ultraviolet solar imagery (long exposures)</td>
+</tr>
+<tr>
+  <td style="text-align:left;">∘ Colorize Sun images or make custom RGB composites</td>
+</tr>
+</tbody>
+</table>
 
 <h2 id="quickstart">Quickstart</h2>
 
@@ -182,6 +191,8 @@ or set <code>HEREGOES_ENV_NUM_CPUS=n</code> to limit the CPUs used to <code>n</c
 </code></pre>
 </div>
 
+<p><strong>See code examples for <a href="https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md">ABI</a> and <a href="https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md">SUVI</a>, or reference the <a href="https://docs.heregoesradio.com">library documentation</a>.</strong></p>
+
 <h2 id="planned">Planned</h2>
 
 <ul>
@@ -193,7 +204,7 @@ or set <code>HEREGOES_ENV_NUM_CPUS=n</code> to limit the CPUs used to <code>n</c
 
 <ul>
 <li>Dask integration</li>
-<li>Support for GeoXO</li>
+<li>Support for other geostationary platforms</li>
 </ul>
 </div>
 

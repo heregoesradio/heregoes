@@ -56,7 +56,7 @@ def _lmst(jdays2000, longitude):  # pragma: no cover
     return gmst(jdays2000) + longitude
 
 
-@heregoes_njit_noparallel
+@heregoes_njit
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L54
 def gmst(jdays2000):  # pragma: no cover
     """Greenwich mean sidereal utc_time, in radians.
@@ -70,7 +70,7 @@ def gmst(jdays2000):  # pragma: no cover
     return np.deg2rad(theta / 240.0) % (2.0 * np.pi)
 
 
-@heregoes_njit_noparallel
+@heregoes_njit
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L91
 def sun_ra_dec(jdays2000):  # pragma: no cover
     """Right ascension and declination of the sun at *utc_time*."""
@@ -94,7 +94,7 @@ def sun_ra_dec(jdays2000):  # pragma: no cover
     return right_ascension, declination
 
 
-@heregoes_njit_noparallel
+@heregoes_njit
 # https://github.com/pytroll/pyorbital/blob/v1.7.1/pyorbital/astronomy.py#L73
 def sun_ecliptic_longitude(jdays2000):  # pragma: no cover
     """Ecliptic longitude of the sun at *utc_time*."""

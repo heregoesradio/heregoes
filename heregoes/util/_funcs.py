@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025.
+# Copyright (c) 2020-2025, 2026.
 
 # Author(s):
 
@@ -42,7 +42,6 @@ __all__ = [
     "nearest_scale",
     "scale_arr",
     "scale_idx",
-    "unravel_index",
     "x2",
     "x4",
 ]
@@ -234,23 +233,22 @@ def centered_slice(center_idx, shape):
 
 
 @heregoes_njit
-def unravel_index(index, shape):  # pragma: no cover
-    # copied from: https://github.com/liberTEM/LiberTEM-blobfinder (GPLv3)
-    sizes = np.zeros(len(shape), dtype=np.int64)
-    result = np.zeros(len(shape), dtype=np.int64)
-    sizes[-1] = 1
-    for i in range(len(shape) - 2, -1, -1):
-        sizes[i] = sizes[i + 1] * shape[i + 1]
-    remainder = index
-    for i in range(len(shape)):
-        result[i] = remainder // sizes[i]
-        remainder %= sizes[i]
-    return to_fixed_tuple(result, len(shape))
-
-
-@heregoes_njit
 def nearest_2d_indices(y_arr, x_arr, target_y, target_x):  # pragma: no cover
     # inspired by https://github.com/blaylockbk/pyBKB_v3/blob/master/demo/Nearest_lat-lon_Grid.ipynb
+
+    def unravel_2d_index(index, shape):
+        # adapted from: https://github.com/liberTEM/LiberTEM-blobfinder (GPLv3)
+        sizes = np.zeros(len(shape), dtype=np.int64)
+        result = np.zeros(len(shape), dtype=np.int64)
+        sizes[-1] = 1
+        for i in range(len(shape) - 2, -1, -1):
+            sizes[i] = sizes[i + 1] * shape[i + 1]
+        remainder = index
+        for i in range(len(shape)):
+            result[i] = remainder // sizes[i]
+            remainder %= sizes[i]
+
+        return to_fixed_tuple(result, 2)
 
     if np.isnan(y_arr).any() | np.isnan(x_arr).any():
         y_arr = y_arr.copy()
@@ -274,7 +272,9 @@ def nearest_2d_indices(y_arr, x_arr, target_y, target_x):  # pragma: no cover
         )
         argmin_of_maximum = np.int64(np.argmin(max_of_abs_differences))
 
-        nearest_ys[idx], nearest_xs[idx] = unravel_index(argmin_of_maximum, idx_shape)
+        nearest_ys[idx], nearest_xs[idx] = unravel_2d_index(
+            argmin_of_maximum, idx_shape
+        )
 
     return (nearest_ys.reshape(target_y.shape), nearest_xs.reshape(target_x.shape))
 

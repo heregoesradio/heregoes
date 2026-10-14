@@ -116,7 +116,7 @@ class ParallaxTestCase:
     @heregoes_njit
     def spherical_parallax_correction(
         lat_deg, lon_deg, sat_za, sat_az, sat_height, feature_height
-    ):
+    ):  # pragma: no cover
         # corrects lat/lon for parallax on the sphere when the true lat/lon on the ground are unknown.
         # feature_height is typically the derived height of a cloud in a pixel
         # lat_deg/lon_deg are naively given from the satellite navigation, as are sat_za and sat_az

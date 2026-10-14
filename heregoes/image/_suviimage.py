@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025.
+# Copyright (c) 2020-2025, 2026.
 
 # Author(s):
 
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -34,7 +34,6 @@ from heregoes.goesr import SUVIL1bData, suvi
 from heregoes.image._image import _Image
 from heregoes.util import make_8bit, make_rgb, max_time_delta
 
-logger = logging.getLogger("heregoes-logger")
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
 
@@ -106,8 +105,9 @@ class SUVIImage(_Image):
         )
 
         if self.data["CMD_EXP"][...] < 1.0:
-            logger.warning(
+            warnings.warn(
                 f"Short SUVI exposure detected in {self.data._nc_file}:\nSUVI exposures shorter than 1 second are not officially supported.",
+                UserWarning,
             )
 
         self.colorize = colorize
@@ -237,13 +237,14 @@ class SUVIRGB(_Image):
                 green_image.time,
                 blue_image.time,
             ],
-            dtype="datetime64",
+            dtype="datetime64[ms]",
         )
 
         max_delta_m = max_time_delta(self.time) / 60
         if max_delta_m > 20:
-            logger.warning(
-                f"SUVI images taken outside of a 20-minute window will blur the RGB."
+            warnings.Warn(
+                f"SUVI images taken outside of a 20-minute window will blur the RGB.",
+                UserWarning,
             )
 
         self.bv: NDArray = make_8bit(
