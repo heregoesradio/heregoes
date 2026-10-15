@@ -1,5 +1,5 @@
 # heregoes
-## Lightweight Python for GOES-R ABI and SUVI
+## Accelerated Python Library for GOES-R ABI and SUVI
 <p>
 <a href="https://github.com/heregoesradio/heregoes/blob/main/LICENSE.txt"><img alt="License: GPL-3.0" src="https://shields.io/github/license/heregoesradio/heregoes"></a>
 <a href="./coverage/coverage.xml"><img src="./coverage/coverage-badge.svg?dummy=8484744"></a>
@@ -17,24 +17,11 @@
     </a>
 </p>
 
-### High performance GOES-R Earth and Sun imagery from netCDF
-
+### Render and analyze GOES imagery from netCDF
 - Developed at [Here GOES Radiotelescope (2020)](https://heregoesradio.com/) for realtime use with [CSPP Geo GRB](https://cimss.ssec.wisc.edu/csppgeo/grb.html)
+- Accelerated and parallelized with the [Numba](https://numba.pydata.org/) JIT compiler for [NumPy](https://numpy.org/)
 - ABI features [tested](https://github.com/heregoesradio/heregoes/tree/main/tests) against ground targets and operational data and literature
 - SUVI imagery in production at [UW–Madison SSEC](https://cimss.ssec.wisc.edu/satellite-blog/archives/53279) and tested for QC
-- Accelerated and parallelized with the [Numba](https://numba.pydata.org/) JIT compiler
-
-## Features
-| Instrument | Products | Features|
-|:-----|----------|---------------------------------------------------------------|
-| ABI  | L1b      | Render Cloud and Moisture Imagery and "Natural" color RGB     |
-| ABI  | L1b      | Export as high resolution Cloud-Optimized GeoTIFF (COG)       |
-| ABI  | L1b, L2+ | Subset with slice notation or lat/lon bounding box            |
-| ABI  | L1b, L2+ | Parallax correct imagery and geolocation for terrain or cloud |
-| ABI  | L1b, L2+ | Pixelwise ground area and look vectors for Sun and satellite  |
-| ABI  | L1b, L2+ | Resample Numpy arrays to and from the projection of ABI scenes|
-| SUVI | L1b      | Extreme Ultraviolet solar imagery (long exposures)            |
-| SUVI | L1b      | Colorize Sun imagery or create custom RGB composites          |
 
 ## Documentation
 - Imagery examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md)
@@ -43,6 +30,29 @@
 
 ## Demos
 - [Terrain correction of the ABI Fixed Grid using heregoes](https://github.com/heregoesradio/heregoes/blob/main/demo/README.md)
+
+## Features
+|🌎 ***ABI Earth imagery*** 🛰️                              |
+|:-----------------------------------------------------------|
+| ∘ Render Cloud and Moisture Imagery and "Natural" color RGB|
+| ∘ Apply band algebra for derived products or algorithms    |
+| ∘ Orthorectify and export as Cloud-Optimized GeoTIFF (COG) |
+
+<br>
+
+|🌐 ***Navigation for ABI L1b and L2+ products*** 🧭                |
+|:-------------------------------------------------------------------|
+| ∘ Subset with slice notation or lat/lon bounding box               |
+| ∘ Pixelwise ground area and local look angles to Sun and satellite |
+| ∘ Resample Numpy arrays to and from the projection of ABI scenes   |
+| ∘ Correct geolocation for parallax displacement by terrain or cloud|
+
+<br>
+
+|☀️ ***SUVI Sun imagery*** 🔭                        |
+|:----------------------------------------------------|
+| ∘ Extreme Ultraviolet solar imagery (long exposures)|
+| ∘ Colorize Sun images or make custom RGB composites |
 
 ## Quickstart
 ### 1. Install heregoes-env
@@ -80,7 +90,7 @@ suvi_img = SUVIImage("OR_SUVI-L1b-[...].nc")
 suvi_img.save("suvi.png")
 ```
 
-#### See code examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md), or reference the [library documentation](https://docs.heregoesradio.com).
+**See code examples for [ABI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/ABI.md) and [SUVI](https://github.com/heregoesradio/heregoes/blob/main/heregoes/image/SUVI.md), or reference the [library documentation](https://docs.heregoesradio.com).**
 
 ## Planned
 - ABI pixelwise timestamps
@@ -88,4 +98,4 @@ suvi_img.save("suvi.png")
 
 ## Future
 - Dask integration
-- Support for GeoXO
+- Support for other geostationary platforms

@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2025.
+# Copyright (c) 2023-2025, 2026.
 
 # Author(s):
 
@@ -77,5 +77,9 @@ if _parallel_state_difference(PARALLEL_MODE):
 
 numba.config.CACHE_DIR = NUMBA_CACHE_DIR
 
-heregoes_njit = numba.njit(cache=True, fastmath=False, parallel=PARALLEL_MODE)
-heregoes_njit_noparallel = numba.njit(cache=True, fastmath=False, parallel=False)
+heregoes_njit = numba.njit(
+    cache=True, fastmath=False, parallel=PARALLEL_MODE, inline="always"
+)
+heregoes_njit_noparallel = numba.njit(
+    cache=True, fastmath=False, parallel=False, inline="always"
+)

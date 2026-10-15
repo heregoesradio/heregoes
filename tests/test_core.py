@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2025.
+# Copyright (c) 2022-2025, 2026.
 
 # Author(s):
 
@@ -29,9 +29,16 @@ from tests.resources_l1b import *
 def test_ncinterface():
     abi_data = load(abi_cc07_nc)
 
-    # test __str__ on variable and dims
-    print(abi_data.variables.Rad)
-    print(abi_data.variables.Rad.dimensions)
+    # test dunder methods on variables and dims
+    assert len(abi_data.variables) == 46
+    assert "Rad" in abi_data.variables
+    for i in [
+        abi_data.variables,
+        abi_data.variables.Rad,
+        abi_data.variables.Rad.dimensions,
+    ]:
+        str(i) == repr(i)
+        print(i)
 
     # take a small masked slice to test on
     array_slice = abi_data.variables.Rad[10:15, 10:15]

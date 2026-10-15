@@ -1,4 +1,4 @@
-# Copyright (c) 2023-2025.
+# Copyright (c) 2023-2025, 2026.
 
 # Author(s):
 
@@ -27,9 +27,6 @@ import numpy as np
 
 
 class _NCBase:
-    def __init__(self):
-        pass
-
     def _copy_attrs(self, src_obj, dst_obj, attr_list):
         for attr_name in attr_list:
             attr_value = getattr(src_obj, attr_name)
@@ -38,11 +35,20 @@ class _NCBase:
 
 
 class _NCVarBase:
-    def __init__(self):
-        pass
-
     def __getitem__(self, key):
         return getattr(self, key)
+
+    def __str__(self):
+        return str(list(self.__dict__.keys()))
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __contains__(self, o):
+        return o in self.__dict__
+
+    def __len__(self):
+        return len(self.__dict__)
 
 
 class NCInterface(_NCBase):

@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025.
+# Copyright (c) 2020-2025, 2026.
 
 # Author(s):
 
@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
+import warnings
 from os import PathLike
 from pathlib import Path
 from typing import Annotated, Optional
@@ -34,7 +34,6 @@ from heregoes.image._image import _Image
 from heregoes.projection import ABIProjection
 from heregoes.util import align_idx, linear_norm, scale_arr, scale_idx
 
-logger = logging.getLogger()
 safe_time_format = "%Y-%m-%dT%H%M%SZ"
 
 
@@ -165,7 +164,7 @@ class ABIImage(BaseABIImage):
 
         - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
 
-        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
+        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to the instrument range derived from the netCDF file; preserves highlights. Default `False` for gamma values <1
 
         - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting (`False`), or white pixels for reflective imagery and black pixels for emissive imagery
 
@@ -369,7 +368,7 @@ class ABINaturalRGB(BaseABIImage):
 
         - `gamma` (optional): Gamma correction term; 0.5 is the common square root enhancement. Default `1.0` or no correction
 
-        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default `False`, but RF is always normalized when `gamma` is 1.0
+        - `normalize_rf` (optional): Whether to linearly normalize reflectance factor (RF) in the output image to the instrument range derived from the netCDF file; preserves highlights. Default `False` for gamma values <1
 
         - `black_space` (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Default `False`
 
@@ -422,10 +421,9 @@ class ABINaturalRGB(BaseABIImage):
             if not np.array_equal(self.index, aligned_idx):
                 # only warn for index alignment if index was provided
                 if self._index_mode:
-                    logger.warning(
-                        "Adjusting provided index %s to %s to align to the 1 km ABI Fixed Grid.",
-                        str(self.index),
-                        str(aligned_idx),
+                    warnings.warn(
+                        f"Adjusting provided index {self.index} to {aligned_idx} to align to the 1 km ABI Fixed Grid.",
+                        UserWarning,
                     )
                 self.index = aligned_idx
 

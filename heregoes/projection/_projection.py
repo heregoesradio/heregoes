@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025.
+# Copyright (c) 2020-2025, 2026.
 
 # Author(s):
 
@@ -182,9 +182,8 @@ class ABIProjection(ABINavigation):
         - `filepath`: `str` or `PathLike` object to save the TIFF to
         - `resample_algo` (optional): [GDAL interpolation method](https://gdal.org/en/stable/programs/gdalwarp.html#cmdoption-gdalwarp-r) to use during the warp
         """
-        resampled = self.resample(
+        resampled = self.resample2latlon(
             source,
-            target="latlon",
             resample_algo=resample_algo,
             return_type="gdal",
             **kwargs,
@@ -269,7 +268,7 @@ class ABIProjection(ABINavigation):
         if isinstance(source, str):
             source = getattr(self, source)
 
-        elif source.ndim == 3 and source.shape[-1] == 3:
+        if source.ndim == 3 and source.shape[-1] == 3:
             intermediate_gdal_options += ["PHOTOMETRIC=RGB"]
 
         if 1 in self.image_shape_px:

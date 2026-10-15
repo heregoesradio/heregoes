@@ -207,7 +207,7 @@
 <li><code>height_m=height_grid</code></li>
 </ul></li>
 <li><p><code>gamma</code> (optional): Gamma correction term; 0.5 is the common square root enhancement. Default <code>1.0</code> or no correction</p></li>
-<li><p><code>normalize_rf</code> (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default <code>False</code>, but RF is always normalized when <code>gamma</code> is 1.0</p></li>
+<li><p><code>normalize_rf</code> (optional): Whether to linearly normalize reflectance factor (RF) in the output image to the instrument range derived from the netCDF file; preserves highlights. Default <code>False</code> for gamma values &lt;1</p></li>
 <li><p><code>black_space</code> (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Defaults to no overwriting (<code>False</code>), or white pixels for reflective imagery and black pixels for emissive imagery</p></li>
 <li><p><code>div_sun_za</code> (optional): Whether to divide reflectance factor by the cosine of the solar zenith angle (ZA). Default <code>False</code></p></li>
 </ul>
@@ -336,7 +336,7 @@ or blackbody brightness temperature (BT) in Kelvin for emissive bands 7-16</p>
 <li><code>height_m=height_grid</code></li>
 </ul></li>
 <li><p><code>gamma</code> (optional): Gamma correction term; 0.5 is the common square root enhancement. Default <code>1.0</code> or no correction</p></li>
-<li><p><code>normalize_rf</code> (optional): Whether to linearly normalize reflectance factor (RF) in the output image to preserve highlights. Default <code>False</code>, but RF is always normalized when <code>gamma</code> is 1.0</p></li>
+<li><p><code>normalize_rf</code> (optional): Whether to linearly normalize reflectance factor (RF) in the output image to the instrument range derived from the netCDF file; preserves highlights. Default <code>False</code> for gamma values &lt;1</p></li>
 <li><p><code>black_space</code> (optional): Whether to overwrite masked pixels in the final ABI image (nominally the "space" background) to be black. Default <code>False</code></p></li>
 <li><p><code>r_coeff</code>, <code>g_coeff</code>, <code>b_coeff</code> (optional): Coefficients for the fractional combination "green" band method described in Bah et. al (2018)</p></li>
 <li><p><code>upscale</code> (optional): Whether to scale up green and blue images (1 km) to match the red image (500 m) (<code>True</code>) or vice versa (<code>False</code>, Default)</p></li>

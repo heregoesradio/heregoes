@@ -15,7 +15,7 @@ if os.getenv("HEREGOES_ENV_PARALLEL", "true").lower() == "false":
     NUM_CPUS = 1
 
 elif os.getenv("HEREGOES_ENV_NUM_CPUS"):
-    NUM_CPUS = int(os.getenv("HEREGOES_ENV_NUM_CPUS"))
+    NUM_CPUS = min(NUM_CPUS, int(os.getenv("HEREGOES_ENV_NUM_CPUS")))
 
 cv2.setNumThreads(NUM_CPUS)
 threadpool_limits(limits=NUM_CPUS, user_api=None)

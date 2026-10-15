@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2025.
+# Copyright (c) 2020-2025, 2026.
 
 # Author(s):
 
@@ -20,6 +20,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import datetime
+import warnings
 from typing import Optional
 
 import astropy.units as u
@@ -84,7 +85,7 @@ class ABINavigation:
 
         - `time` (optional): UTC `datetime` for which the Sun position is valid. The product midpoint time is used if not provided
 
-        - `degrees` (optional): Whether to return calculated Sun/satellite vector angles in radians or degrees (`True`). Default `False`
+        - `degrees` (optional): ***DEPRECATED*** Whether to return calculated Sun/satellite vector angles in radians or degrees (`True`). Default `False`
 
         - `resample_nav` (optional): Determines whether to resample the navigation to fit the ABI image (`True`), or resample the ABI image to fit the navigation (`False`, default)
             - *Only takes effect when `lat_bounds` and `lon_bounds` are provided with `height_m` for parallax correction*
@@ -102,6 +103,12 @@ class ABINavigation:
         self.precise_sun = precise_sun
         self.degrees = degrees
         self.resample_nav = resample_nav
+
+        if self.degrees:
+            warnings.warn(
+                "Degree conversion of Sun/satellite look angles with `degrees` parameter will not be supported in the next major release of `heregoes`.",
+                DeprecationWarning,
+            )
 
         self._y_rad = None
         self._x_rad = None

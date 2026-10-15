@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2025.
+# Copyright (c) 2022-2025, 2026.
 
 # Author(s):
 
@@ -22,6 +22,7 @@
 import gc
 
 import numpy as np
+import pytest
 
 from heregoes import image, load
 from heregoes.util import scale_idx
@@ -164,16 +165,34 @@ def test_abi_image():
                     abi_rgb_full.save(filepath=filepath)
 
                     # indexed RGB
-                    abi_rgb_indexed_bounds = image.ABINaturalRGB(
-                        r_nc,
-                        g_nc,
-                        b_nc,
-                        index=slc,
-                        upscale=upscale,
-                        upscale_algo=upscale_algo,
-                        gamma=gamma,
-                        black_space=True,
-                    )
+                    if upscale:
+                        # should only warn when indexed and upscaling
+                        with pytest.warns(
+                            UserWarning,
+                            match="Adjusting provided index.*",
+                        ):
+                            abi_rgb_indexed_bounds = image.ABINaturalRGB(
+                                r_nc,
+                                g_nc,
+                                b_nc,
+                                index=slc,
+                                upscale=upscale,
+                                upscale_algo=upscale_algo,
+                                gamma=gamma,
+                                black_space=True,
+                            )
+
+                    else:
+                        abi_rgb_indexed_bounds = image.ABINaturalRGB(
+                            r_nc,
+                            g_nc,
+                            b_nc,
+                            index=slc,
+                            upscale=upscale,
+                            upscale_algo=upscale_algo,
+                            gamma=gamma,
+                            black_space=True,
+                        )
 
                     # latlon RGB
                     abi_rgb_latlon_bounds = image.ABINaturalRGB(
@@ -260,7 +279,7 @@ def test_suvi_rgb():
     assert (rgb.bv[:, :, 0] == blue.bv).all()
 
     assert (
-        rgb.time == np.array([red.time, green.time, blue.time], dtype="datetime64")
+        rgb.time == np.array([red.time, green.time, blue.time], dtype="datetime64[ms]")
     ).all()
 
     rgb.save(filepath=output_dir, ext=".jpeg")
